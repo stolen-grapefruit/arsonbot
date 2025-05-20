@@ -22,3 +22,15 @@ def main():
 
         send_pwm_command(motor_group, u)
         loop.sleep()
+
+
+
+from vision import get_top_pixel_from_frame
+import cv2
+
+cap = cv2.VideoCapture(0)
+ret, frame = cap.read()
+if ret:
+    pixel_info, mask = get_top_pixel_from_frame(frame)
+    if pixel_info:
+        x, y, x_offset, y_offset = pixel_info
