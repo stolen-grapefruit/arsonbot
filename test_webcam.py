@@ -1,3 +1,5 @@
+#test_webcam.py
+
 import cv2
 import numpy as np
 import time
@@ -7,6 +9,7 @@ import time
 TARGET_COLOR = 'blue'       # 'blue' or 'red'
 VERTICAL_OFFSET_PX = 40     # Move target this many pixels ABOVE the topmost one
 MIN_BLOB_SIZE = 10          # Minimum number of connected pixels for valid detection
+
 
 # ----------- COLOR RANGES IN HSV ------------
 color_ranges = {
