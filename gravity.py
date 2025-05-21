@@ -10,6 +10,7 @@ from config import m1, m2, m3, m4, g
 from FK import compute_forward_kinematics
 
 
+
 def compute_gravity_torque(q):
     """
     Calculate gravity compensation torques for a 4R manipulator.

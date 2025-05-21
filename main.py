@@ -1,18 +1,46 @@
 from config import CONTROL_MODE, VISION_MODE
 from motor_interface import setup_motors, read_joint_states, send_pwm_command
-from vision import get_visual_info
+from vision import get_top_pixel_from_frame
 from control import compute_control_action
 from mechae263C_helpers.minilabs import FixedFrequencyLoopManager
+import cv2
+
+
+def get_visual_info(mode="side"):
+    cap = cv2.VideoCapture(0)
+    ret, frame = cap.read()
+    cap.release()
+
+    if not ret:
+        return {"error": None}
+
+    pixel_info, _ = get_top_pixel_from_frame(frame)
+    if pixel_info:
+        x_top, y_top, x_off, y_off = pixel_info
+
+        # Define image-space error (e.g., offset from center or goal)
+        # For now, assume goal is fixed pixel location (e.g., center x, target y)
+        # Adjust as needed
+        goal_pixel = [x_top, y_off]  # target location in image
+        error = np.array([x_top - goal_pixel[0], y_top - goal_pixel[1]])
+
+        return {"error": error}
+
+    return {"error": None}
+
 
 def main():
     motor_group = setup_motors()
-    loop = FixedFrequencyLoopManager(30)
+    loop = FixedFrequencyLoopManager(30)  # 30 Hz
     should_continue = True
 
     while should_continue:
         q, qdot = read_joint_states(motor_group)
 
         visual_info = get_visual_info(mode=VISION_MODE)
+        if visual_info["error"] is None:
+            continue  # Skip this loop if no visual target
+
         u = compute_control_action(
             mode=CONTROL_MODE,
             error=visual_info["error"],
@@ -24,12 +52,5 @@ def main():
         loop.sleep()
 
 
-from vision import get_top_pixel_from_frame
-import cv2
-
-cap = cv2.VideoCapture(0)
-ret, frame = cap.read()
-if ret:
-    pixel_info, mask = get_top_pixel_from_frame(frame)
-    if pixel_info:
-        x, y, x_offset, y_offset = pixel_info
+if __name__ == "__main__":
+    main()

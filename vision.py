@@ -1,13 +1,13 @@
 """
-vision.py - Computer vision module for tracking the topmost color pixel.
-Modular version of the test_webcam script for use in control loops.
+vision.py - Computer vision module for tracking colored pixels from two cameras.
+Camera 1: side view (x-z plane) → use x and z info.
+Camera 2: front view (y-z plane) → use y info only.
 """
 
 import cv2
 import numpy as np
 from config import TARGET_COLOR, VERTICAL_OFFSET_PX, MIN_BLOB_SIZE
 
-# ----------- COLOR RANGES IN HSV ------------
 color_ranges = {
     'blue': {
         'lower': np.array([90, 50, 70]),
@@ -22,9 +22,6 @@ color_ranges = {
 }
 
 def get_top_pixel_from_frame(frame, target_color=TARGET_COLOR):
-    """
-    Returns the topmost pixel (with vertical offset) of a given color from a frame.
-    """
     hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 
     if target_color == 'red':
@@ -50,37 +47,71 @@ def get_top_pixel_from_frame(frame, target_color=TARGET_COLOR):
     else:
         return None, filtered_mask
 
-def show_camera_feed():
+
+def get_visual_info(mode="side", debug=True):
+    """
+    Returns image-space error vector for one or two camera views.
+    mode: "side" = camera 1, "front" = camera 2, "dual" = both
+    """
+    cap1 = cv2.VideoCapture(0)  # Camera 1 (side view)
+    cap2 = cv2.VideoCapture(1) if mode == "dual" else None
+
+    ret1, frame1 = cap1.read()
+    cap1.release()
+
+    ret2, frame2 = (cap2.read() if cap2 else (None, None))
+    if cap2: cap2.release()
+
+    error_xz = None
+    error_y = None
+
+    if ret1:
+        pixel_info_1, _ = get_top_pixel_from_frame(frame1)
+        if pixel_info_1:
+            x1, y1, x1_off, y1_off = pixel_info_1
+            error_xz = np.array([x1 - x1_off, y1 - y1_off])  # [x_error, z_error]
+            if debug:
+                print(f"[Camera 1] x error: {x1 - x1_off}, z error: {y1 - y1_off}")
+
+    if ret2 and mode == "dual":
+        pixel_info_2, _ = get_top_pixel_from_frame(frame2)
+        if pixel_info_2:
+            x2, y2, _, _ = pixel_info_2
+            error_y = np.array([y2])  # vertical in image = y-axis world
+            if debug:
+                print(f"[Camera 2] y error (approx): {error_y[0]}")
+
+    if mode == "side":
+        return {"error": error_xz}
+    elif mode == "front":
+        return {"error": error_y}
+    elif mode == "dual":
+        if error_xz is not None and error_y is not None:
+            return {"error": np.array([error_xz[0], error_y[0], error_xz[1]])}  # [x, y, z]
+        else:
+            return {"error": None}
+
+
+if __name__ == "__main__":
+    # DEBUG camera 1 only
     cap = cv2.VideoCapture(0)
-    if not cap.isOpened():
-        print("❌ Could not open webcam.")
-        return
-
-    print(f"🔍 Tracking topmost {TARGET_COLOR} pixel with vertical offset of {VERTICAL_OFFSET_PX}px...")
-
     while True:
         ret, frame = cap.read()
         if not ret:
             break
 
-        result, mask = get_top_pixel_from_frame(frame)
-        if result:
-            x_top, y_top, x_off, y_off = result
-            cv2.circle(frame, (x_top, y_top), 5, (0, 255, 255), -1)
-            cv2.circle(frame, (x_off, y_off), 5, (255, 0, 0), -1)
-            print(f"Detected: x={x_top}, y={y_top} | Offset target: x={x_off}, y={y_off}")
-        else:
-            print("No valid pixel found.")
+        pixel_info, mask = get_top_pixel_from_frame(frame)
+        if pixel_info:
+            x, y, x_offset, y_offset = pixel_info
+            print(f"[Test] Camera 1 - Top: ({x},{y}), Offset: ({x_offset},{y_offset})")
+            cv2.circle(frame, (x, y), 5, (0, 255, 255), -1)
+            cv2.circle(frame, (x_offset, y_offset), 5, (255, 0, 0), -1)
 
-        cv2.imshow('Camera Feed', frame)
-        cv2.imshow('Filtered Mask', mask)
+        cv2.imshow("Camera 1", frame)
+        cv2.imshow("Mask", mask)
 
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
 
     cap.release()
     cv2.destroyAllWindows()
-
-
-if __name__ == "__main__":
-    show_camera_feed()

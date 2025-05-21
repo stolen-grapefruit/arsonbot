@@ -26,7 +26,6 @@ def inverse_kinematics(x: float, y: float, z: float) -> np.ndarray:
     offset = 180
     offset_1 = 90
 
-    
 
     # Compute helper values
     rho = np.sqrt(x**2 + y**2)
@@ -65,4 +64,3 @@ if __name__ == "__main__":
     x, y, z = 3, 7.5, 3
     joint_angles = inverse_kinematics(x, y, z)
     print("Joint angles [deg]:", joint_angles)
-

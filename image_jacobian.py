@@ -51,6 +51,7 @@ def compute_image_jacobian(q):
 
 
 if __name__ == "__main__":
+    
     q_test = np.radians([30, 20, -15, 10])
     J = compute_image_jacobian(q_test)
     print("Analytical task-space Jacobian (ẋ, ẏ, ż) w.r.t q:")

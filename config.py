@@ -6,6 +6,7 @@ TARGET_COLOR = 'blue'         # or 'red'
 VERTICAL_OFFSET_PX = 40       # pixels above topmost pixel to aim for
 MIN_BLOB_SIZE = 10            # minimum size of color blob to count as valid
 
+
 #DH parameters
 L1 = 0.15 #get real values
 L2 = 0.12
