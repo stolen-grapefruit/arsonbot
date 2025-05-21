@@ -25,6 +25,8 @@ alpha4 = 0
 
 
 link_masses = [0.4, 0.3, 0.2, 0.1] # Get real values kg
+m1, m2, m3, m4 = link_masses
+g = 9.81
 
 
 

@@ -29,6 +29,7 @@ def get_visual_info(mode="side"):
     return {"error": None}
 
 
+
 def main():
     motor_group = setup_motors()
     loop = FixedFrequencyLoopManager(30)  # 30 Hz
@@ -40,6 +41,10 @@ def main():
         visual_info = get_visual_info(mode=VISION_MODE)
         if visual_info["error"] is None:
             continue  # Skip this loop if no visual target
+        
+        if visual_info["error"] is None:
+        print("⚠️ No visual error detected — skipping control.")
+        continue
 
         u = compute_control_action(
             mode=CONTROL_MODE,
@@ -47,9 +52,16 @@ def main():
             q=q,
             qdot=qdot
         )
+        print("q:", q)
+        print("qdot:", qdot)
+        print("u (control signal):", u)
 
         send_pwm_command(motor_group, u)
         loop.sleep()
+
+
+        print("Visual error:", visual_info["error"])
+        print("Computed command (u):", u)
 
 
 if __name__ == "__main__":
