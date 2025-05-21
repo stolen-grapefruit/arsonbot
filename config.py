@@ -1,10 +1,23 @@
+import numpy as np
 CONTROL_MODE = "ibvs"      # Options: "ibvs", "pbvs", "hybrid"
 VISION_MODE = "image"      # Options: "image", "pose"
 
 # Color tracking parameters
-TARGET_COLOR = 'blue'         # or 'red'
-VERTICAL_OFFSET_PX = 40       # pixels above topmost pixel to aim for
+TARGET_COLOR = 'red'         # or 'red'
+ENDEFFECTOR_COLOR = 'blue' 
+
+TARGET_PIXEL_OFFSET = (0, 40)       # (horizontal, vertical) offset of target in pixels
+ENDEFFECTOR_PIXEL_OFFSET = (0, 0)   # Optional if needed for adjusting EE marker location
+
 MIN_BLOB_SIZE = 10            # minimum size of color blob to count as valid
+
+# Joint angle limits in radians (min, max) for each joint
+JOINT_LIMITS = [
+    (-np.pi, np.pi),        # Joint 1 INSERT REAL VALUES
+    (-np.pi/2, np.pi/2),    # Joint 2
+    (-np.pi/2, np.pi/2),    # Joint 3
+    (-np.pi/2, np.pi/2),    # Joint 4
+]
 
 
 #DH parameters

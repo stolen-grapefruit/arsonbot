@@ -1,9 +1,17 @@
-from config import CONTROL_MODE, VISION_MODE
+from config import CONTROL_MODE, VISION_MODE, JOINT_LIMITS
 from motor_interface import setup_motors, read_joint_states, send_pwm_command
 from vision import get_top_pixel_from_frame
 from control import compute_control_action
 from mechae263C_helpers.minilabs import FixedFrequencyLoopManager
 import cv2
+
+
+def clip_joint_angles(q):
+    return np.array([
+        np.clip(angle, JOINT_LIMITS[i][0], JOINT_LIMITS[i][1])
+        for i, angle in enumerate(q)
+    ])
+
 
 
 def get_visual_info(mode="side"):

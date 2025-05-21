@@ -1,12 +1,20 @@
 """
-vision.py - Computer vision module for tracking colored pixels from two cameras.
-Camera 1: side view (x-z plane) → use x and z info.
-Camera 2: front view (y-z plane) → use y info only.
+vision.py - Optimized computer vision for ARSONBOT.
+- Tracks target and end-effector markers.
+- Supports camera 1 (side xz) and optional camera 2 (yz).
+- Includes frame rate limiting, downsampling, and live debug visualization.
 """
 
 import cv2
 import numpy as np
-from config import TARGET_COLOR, VERTICAL_OFFSET_PX, MIN_BLOB_SIZE
+import time
+from config import TARGET_COLOR, ENDEFFECTOR_COLOR, TARGET_PIXEL_OFFSET, ENDEFFECTOR_PIXEL_OFFSET, MIN_BLOB_SIZE
+
+# ---------- USER TUNABLE PARAMETERS ----------
+DEBUG_VISUAL = True
+VISION_FPS = 10
+FRAME_SCALE = 0.5
+CAMERA_MODE = "side"  # options: "side", "dual"
 
 color_ranges = {
     'blue': {
@@ -21,15 +29,15 @@ color_ranges = {
     }
 }
 
-def get_top_pixel_from_frame(frame, target_color=TARGET_COLOR):
+def get_top_pixel_from_frame(frame, color):
     hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 
-    if target_color == 'red':
+    if color == 'red':
         mask1 = cv2.inRange(hsv, color_ranges['red']['lower1'], color_ranges['red']['upper1'])
         mask2 = cv2.inRange(hsv, color_ranges['red']['lower2'], color_ranges['red']['upper2'])
         mask = cv2.bitwise_or(mask1, mask2)
     else:
-        mask = cv2.inRange(hsv, color_ranges[target_color]['lower'], color_ranges[target_color]['upper'])
+        mask = cv2.inRange(hsv, color_ranges[color]['lower'], color_ranges[color]['upper'])
 
     num_labels, labels, stats, _ = cv2.connectedComponentsWithStats(mask)
     filtered_mask = np.zeros_like(mask)
@@ -42,18 +50,13 @@ def get_top_pixel_from_frame(frame, target_color=TARGET_COLOR):
     if coords is not None:
         topmost = min(coords, key=lambda pt: pt[0][1])
         x_top, y_top = topmost[0]
-        y_offset = max(0, y_top - VERTICAL_OFFSET_PX)
-        return (x_top, y_top, x_top, y_offset), filtered_mask
+        return (x_top, y_top), filtered_mask
     else:
         return None, filtered_mask
 
 
 def get_visual_info(mode="side", debug=True):
-    """
-    Returns image-space error vector for one or two camera views.
-    mode: "side" = camera 1, "front" = camera 2, "dual" = both
-    """
-    cap1 = cv2.VideoCapture(0)  # Camera 1 (side view)
+    cap1 = cv2.VideoCapture(0)
     cap2 = cv2.VideoCapture(1) if mode == "dual" else None
 
     ret1, frame1 = cap1.read()
@@ -66,20 +69,34 @@ def get_visual_info(mode="side", debug=True):
     error_y = None
 
     if ret1:
-        pixel_info_1, _ = get_top_pixel_from_frame(frame1)
-        if pixel_info_1:
-            x1, y1, x1_off, y1_off = pixel_info_1
-            error_xz = np.array([x1 - x1_off, y1 - y1_off])  # [x_error, z_error]
+        frame1 = cv2.resize(frame1, (0, 0), fx=FRAME_SCALE, fy=FRAME_SCALE)
+        pixel_target, _ = get_top_pixel_from_frame(frame1, TARGET_COLOR)
+        pixel_ee, _ = get_top_pixel_from_frame(frame1, ENDEFFECTOR_COLOR)
+        if pixel_target and pixel_ee:
+            xt, zt = pixel_target
+            xe, ze = pixel_ee
+
+            xt += TARGET_PIXEL_OFFSET[0]
+            zt += TARGET_PIXEL_OFFSET[1]
+            xe += ENDEFFECTOR_PIXEL_OFFSET[0]
+            ze += ENDEFFECTOR_PIXEL_OFFSET[1]
+
+            error_xz = np.array([xe - xt, ze - zt])
+
             if debug:
-                print(f"[Camera 1] x error: {x1 - x1_off}, z error: {y1 - y1_off}")
+                print(f"[Camera 1] Target: ({xt}, {zt}), EE: ({xe}, {ze})")
+                print(f"[Camera 1] x error: {error_xz[0]}, z error: {error_xz[1]}")
 
     if ret2 and mode == "dual":
-        pixel_info_2, _ = get_top_pixel_from_frame(frame2)
-        if pixel_info_2:
-            x2, y2, _, _ = pixel_info_2
-            error_y = np.array([y2])  # vertical in image = y-axis world
+        frame2 = cv2.resize(frame2, (0, 0), fx=FRAME_SCALE, fy=FRAME_SCALE)
+        pixel_target2, _ = get_top_pixel_from_frame(frame2, TARGET_COLOR)
+        pixel_ee2, _ = get_top_pixel_from_frame(frame2, ENDEFFECTOR_COLOR)
+        if pixel_target2 and pixel_ee2:
+            yt = pixel_target2[1] + TARGET_PIXEL_OFFSET[1]
+            ye = pixel_ee2[1] + ENDEFFECTOR_PIXEL_OFFSET[1]
+            error_y = np.array([ye - yt])
             if debug:
-                print(f"[Camera 2] y error (approx): {error_y[0]}")
+                print(f"[Camera 2] y error: {error_y[0]}")
 
     if mode == "side":
         return {"error": error_xz}
@@ -87,28 +104,41 @@ def get_visual_info(mode="side", debug=True):
         return {"error": error_y}
     elif mode == "dual":
         if error_xz is not None and error_y is not None:
-            return {"error": np.array([error_xz[0], error_y[0], error_xz[1]])}  # [x, y, z]
+            return {"error": np.array([error_xz[0], error_y[0], error_xz[1]])}
         else:
             return {"error": None}
 
 
 if __name__ == "__main__":
-    # DEBUG camera 1 only
     cap = cv2.VideoCapture(0)
     while True:
+        loop_start = time.time()
+
         ret, frame = cap.read()
         if not ret:
             break
 
-        pixel_info, mask = get_top_pixel_from_frame(frame)
-        if pixel_info:
-            x, y, x_offset, y_offset = pixel_info
-            print(f"[Test] Camera 1 - Top: ({x},{y}), Offset: ({x_offset},{y_offset})")
-            cv2.circle(frame, (x, y), 5, (0, 255, 255), -1)
-            cv2.circle(frame, (x_offset, y_offset), 5, (255, 0, 0), -1)
+        frame = cv2.resize(frame, (0, 0), fx=FRAME_SCALE, fy=FRAME_SCALE)
+        pixel_target, mask = get_top_pixel_from_frame(frame, TARGET_COLOR)
+        pixel_ee, _ = get_top_pixel_from_frame(frame, ENDEFFECTOR_COLOR)
 
-        cv2.imshow("Camera 1", frame)
-        cv2.imshow("Mask", mask)
+        if DEBUG_VISUAL:
+            if pixel_target:
+                xt, zt = pixel_target
+                xt += TARGET_PIXEL_OFFSET[0]
+                zt += TARGET_PIXEL_OFFSET[1]
+                cv2.circle(frame, (xt, zt), 5, (0, 0, 255), -1)
+            if pixel_ee:
+                xe, ze = pixel_ee
+                xe += ENDEFFECTOR_PIXEL_OFFSET[0]
+                ze += ENDEFFECTOR_PIXEL_OFFSET[1]
+                cv2.circle(frame, (xe, ze), 5, (255, 0, 0), -1)
+
+            cv2.imshow("Camera 1", frame)
+            cv2.imshow("Mask", mask)
+
+        elapsed = time.time() - loop_start
+        time.sleep(max(0, (1 / VISION_FPS) - elapsed))
 
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break

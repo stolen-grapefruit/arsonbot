@@ -39,12 +39,20 @@ def compute_ibvs_command(image_error, q, qdot, gain_scale=1.0):
 
     return tau
 
+    q_cmd = J_pinv @ v_img
+
+    if camera_mode == "side":
+        q_cmd[0] = 0  # Don't let joint 1 move in camera 1-only mode
+
+
+
 
 def compute_joint_command(image_error, q, qdot, gain_scale=1.0):
     """
     Returns joint velocity or torque vector from image-space error.
     For use in velocity-based control without gravity terms.
     """
+
 
     Kp = 0.4 * gain_scale
     J = compute_image_jacobian(q)
