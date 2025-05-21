@@ -24,7 +24,6 @@ def main():
         loop.sleep()
 
 
-
 from vision import get_top_pixel_from_frame
 import cv2
 

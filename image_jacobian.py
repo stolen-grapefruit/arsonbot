@@ -1,47 +1,57 @@
 """
-image_jacobian.py - Computes an approximate Jacobian for a 4R spatial manipulator
+image_jacobian.py - Computes an analytical Jacobian for a 4R spatial manipulator
 
-This script estimates a task-space Jacobian used in visual servoing contexts.
-It uses forward kinematics and partial derivatives, abstracted through modular FK and IK scripts.
-
-Note: This version assumes a general 4R spatial manipulator (not planar).
+This version uses symbolic expressions adapted from MATLAB output.
+Assumes joint angles q = [q1, q2, q3, q4] and link lengths from config.py.
 """
 
 import numpy as np
-from IK import inverse_kinematics
-from FK import compute_forward_kinematics
+from config import a2, a3, d4
 
 
-def compute_image_jacobian(q, delta=1e-4):
+def compute_image_jacobian(q):
     """
-    Numerically estimate the image-space Jacobian for a 4R manipulator.
-    Approximates how the end-effector task-space position changes with each joint.
+    Computes the 3x4 linear velocity Jacobian matrix for a 4R manipulator based on analytical expressions.
 
     Parameters:
-        q (np.ndarray): 1D array of joint angles [q1, q2, q3, q4] in radians
-        delta (float): small perturbation for finite difference
+        q (np.ndarray): Joint angles [q1, q2, q3, q4] in radians
 
     Returns:
-        J (np.ndarray): 3x4 Jacobian (maps joint velocities to ẋ, ẏ, ż of end-effector)
+        np.ndarray: 3x4 Jacobian mapping joint velocities to end-effector (ẋ, ẏ, ż)
     """
-    n = len(q)
-    J = np.zeros((3, n))
+    q1, q2, q3, q4 = q
+    t1 = q1
+    t2 = q2
+    t3 = q3
 
-    # Current end-effector position
-    pos0 = compute_forward_kinematics(q)[:3]  # assume FK returns full transform or pose
+    s1 = np.sin(t1)
+    c1 = np.cos(t1)
+    s23 = np.sin(t2 + t3)
+    c23 = np.cos(t2 + t3)
+    c2 = np.cos(t2)
 
-    for i in range(n):
-        dq = np.zeros_like(q)
-        dq[i] = delta
-        pos_delta = compute_forward_kinematics(q + dq)[:3]
-        J[:, i] = (pos_delta - pos0) / delta
+    J = np.zeros((3, 4))
+
+    J[0, 0] = d4 * s23 * s1 - s1 * (a3 * c23 + a2 * c2)
+    J[0, 1] = d4 * s23 * s1 - s1 * (a3 * c23 + a2 * c2)
+    J[0, 2] = -c1 * (d4 * c23 + a3 * s23)
+    J[0, 3] = -d4 * c23 * c1
+
+    J[1, 0] = c1 * (a3 * c23 + a2 * c2) - d4 * s23 * c1
+    J[1, 1] = c1 * (a3 * c23 + a2 * c2) - d4 * s23 * c1
+    J[1, 2] = -s1 * (d4 * c23 + a3 * s23)
+    J[1, 3] = -d4 * c23 * s1
+
+    J[2, 0] = 0
+    J[2, 1] = 0
+    J[2, 2] = d4 * s23 - a3 * c23
+    J[2, 3] = d4 * s23
 
     return J
 
 
 if __name__ == "__main__":
-    # Example test with placeholder joint angles
     q_test = np.radians([30, 20, -15, 10])
     J = compute_image_jacobian(q_test)
-    print("Estimated task-space Jacobian (ẋ, ẏ, ż) w.r.t q:")
+    print("Analytical task-space Jacobian (ẋ, ẏ, ż) w.r.t q:")
     print(J)
