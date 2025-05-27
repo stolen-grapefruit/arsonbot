@@ -7,7 +7,7 @@ from mpl_toolkits.mplot3d import Axes3D
 from IK import compute_IK
 from config import L1, L2, L3, L4
 
-def forward_kinematics_3d(q):
+def fk_compute(q):
     """
     Compute 3D positions of the joints for the full 4R arm using DH-style chaining.
     Args:
