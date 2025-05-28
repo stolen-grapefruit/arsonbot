@@ -1,82 +1,76 @@
 import numpy as np
+import matplotlib.pyplot as plt
 
-def lpb(t0, tf, q0, qf, tb=None, qdd=None, N=100):
-    time = tf - t0
+def quintic_trajectory(t0, tf, q0_vec, qf_vec, N=200):
+    """
+    Generates a joint-space quintic trajectory with continuous q, qd, qdd across 4 joints.
+
+    Parameters:
+        t0 (float): Start time
+        tf (float): End time
+        q0_vec (np.ndarray): Initial joint angles [q1_0, q2_0, q3_0, q4_0]
+        qf_vec (np.ndarray): Final joint angles [q1_f, q2_f, q3_f, q4_f]
+        N (int): Number of time steps
+
+    Returns:
+        t (np.ndarray): Time vector [N]
+        q (np.ndarray): Joint positions [N x 4]
+        qd (np.ndarray): Joint velocities [N x 4]
+        qdd (np.ndarray): Joint accelerations [N x 4]
+        qddd (np.ndarray): Joint jerks [N x 4]
+    """
+    
     t = np.linspace(t0, tf, N)
+    tau = t - t0
+    T = tf - t0
 
-    if tb == 0 and qdd is not None:
-        under_sqrt = qdd**2 * time**2 - 4 * abs(qdd) * abs(qf - q0)
-        if under_sqrt < 0:
-            raise ValueError("Insufficient acceleration available. Cannot compute blend time.")
-        tb = (time / 2) - (np.sqrt(under_sqrt) / (2 * qdd))
+    q = np.zeros((N, 4))
+    qd = np.zeros((N, 4))
+    qdd = np.zeros((N, 4))
+    qddd = np.zeros((N, 4))
 
-    elif tb is not None and (qdd is None or qdd == 0):
-        qdd = abs((qf - q0) / (tb * (time - tb)))
+    for j in range(4):
+        q0 = q0_vec[j]
+        qf = qf_vec[j]
 
-    if tb is None or qdd is None:
-        raise ValueError("Either tb or qdd must be provided and non-zero.")
+        # Boundary conditions: start/end at rest
+        a0 = q0
+        a1 = 0
+        a2 = 0
+        a3 = (10*(qf - q0)) / T**3
+        a4 = (-15*(qf - q0)) / T**4
+        a5 = (6*(qf - q0)) / T**5
 
-    # Determine blend coefficients
-    sign = 1 if q0 < qf else -1
-    ab0_rhs = np.array([q0, 0, sign * qdd])
-    abf_rhs = np.array([qf, 0, -sign * qdd])
+        q[:, j]   = a0 + a1*tau + a2*tau**2 + a3*tau**3 + a4*tau**4 + a5*tau**5
+        qd[:, j]  = a1 + 2*a2*tau + 3*a3*tau**2 + 4*a4*tau**3 + 5*a5*tau**4
+        qdd[:, j] = 2*a2 + 6*a3*tau + 12*a4*tau**2 + 20*a5*tau**3
+        qddd[:, j] = 6*a3 + 24*a4*tau + 60*a5*tau**2
 
-    A = np.array([
-        [1, t0, t0**2],
-        [0, 1, 2*t0],
-        [0, 0, 2]
-    ])
-    ab0 = np.linalg.solve(A, ab0_rhs)
-    abf = np.linalg.solve(A, abf_rhs)
-
-    # Blending boundary values
-    qb1 = ab0[0] + ab0[1] * (t0 + tb) + ab0[2] * (t0 + tb)**2
-    qb2 = abf[0] + abf[1] * (tf - tb) + abf[2] * (tf - tb)**2
-
-    a = np.linalg.solve(
-        np.array([[1, t0 + tb], [1, tf - tb]]),
-        np.array([qb1, qb2])
-    )
-
-    # Segment indices
-    t11 = t[(t0 <= t) & (t <= t0 + tb)]
-    t22 = t[(t0 + tb < t) & (t < tf - tb)]
-    t33 = t[(tf - tb <= t) & (t <= tf)]
-
-    # First parabolic
-    q1 = ab0[0] + ab0[1] * t11 + ab0[2] * t11**2
-    qd1 = ab0[1] + 2 * ab0[2] * t11
-    qdd1 = np.full_like(t11, 2 * ab0[2])
-
-    # Linear segment
-    q2 = a[0] + a[1] * t22
-    qd2 = np.full_like(t22, a[1])
-    qdd2 = np.zeros_like(t22)
-
-    # Second parabolic
-    q3 = abf[0] + abf[1] * t33 + abf[2] * t33**2
-    qd3 = abf[1] + 2 * abf[2] * t33
-    qdd3 = np.full_like(t33, 2 * abf[2])
-
-    # Concatenate segments
-    q = np.concatenate([q1, q2, q3])
-    qd = np.concatenate([qd1, qd2, qd3])
-    qdd_out = np.concatenate([qdd1, qdd2, qdd3])
-    qddd = np.zeros(N)
-
-    return t, q, qd, qdd_out, qddd
+    return t, q, qd, qdd, qddd
 
 
-# Example usage:
+# === DEBUG PLOT ===
 if __name__ == "__main__":
-    t, q, qd, qdd, qddd = lpb(t0=0, tf=5, q0=0, qf=1, tb=1, qdd=None, N=200)
+    # Example start/end joint angles [radians]
+    q0 = np.radians([90, 90, 90, 90])
+    qf = np.radians([120, 100, 80, 60])
+    t0 = 0
+    tf = 4
 
-    import matplotlib.pyplot as plt
-    plt.plot(t, q, label='q')
-    plt.plot(t, qd, label='qd')
-    plt.plot(t, qdd, label='qdd')
-    plt.title("Linear Parabolic Blend")
-    plt.xlabel("Time [s]")
-    plt.legend()
-    plt.grid(True)
+    t, q, qd, qdd, qddd = quintic_trajectory(t0, tf, q0, qf, N=300)
+
+    joint_names = ["Joint 1", "Joint 2", "Joint 3", "Joint 4"]
+
+    fig, axes = plt.subplots(4, 1, figsize=(10, 8), sharex=True)
+    for j in range(4):
+        axes[j].plot(t, np.degrees(q[:, j]), label='q [deg]')
+        axes[j].plot(t, np.degrees(qd[:, j]), '--', label='qd [deg/s]')
+        axes[j].plot(t, np.degrees(qdd[:, j]), ':', label='qdd [deg/s²]')
+        axes[j].set_ylabel(joint_names[j])
+        axes[j].legend()
+        axes[j].grid(True)
+
+    axes[-1].set_xlabel("Time [s]")
+    plt.suptitle("Quintic Joint Trajectories (All 4 Joints)")
+    plt.tight_layout()
     plt.show()
