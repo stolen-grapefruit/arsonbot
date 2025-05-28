@@ -19,7 +19,7 @@ def quintic_trajectory(t0, tf, q0_vec, qf_vec, N=200):
         qdd (np.ndarray): Joint accelerations [N x 4]
         qddd (np.ndarray): Joint jerks [N x 4]
     """
-    
+
     t = np.linspace(t0, tf, N)
     tau = t - t0
     T = tf - t0
@@ -52,10 +52,10 @@ def quintic_trajectory(t0, tf, q0_vec, qf_vec, N=200):
 # === DEBUG PLOT ===
 if __name__ == "__main__":
     # Example start/end joint angles [radians]
-    q0 = np.radians([90, 90, 90, 90])
-    qf = np.radians([120, 100, 80, 60])
+    q0 = np.radians([5, 90, 90, 90])
+    qf = np.radians([120, 5, 80, 60])
     t0 = 0
-    tf = 4
+    tf = 8
 
     t, q, qd, qdd, qddd = quintic_trajectory(t0, tf, q0, qf, N=300)
 
