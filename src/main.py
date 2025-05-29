@@ -22,3 +22,7 @@ def main():
 
         send_pwm_command(motor_group, u)
         loop.sleep()
+
+# Trajectory individual points (Px,Py,Pz,EE orient)
+Candle1 =   [5, 5, 2, 0]; # candle 1 (inches)
+Candle2 =   [5, 0, 2, 0]; # candle 2

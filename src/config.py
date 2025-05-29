@@ -2,7 +2,7 @@ CONTROL_MODE = "ibvs"      # Options: "ibvs", "pbvs", "hybrid"
 VISION_MODE = "image"      # Options: "image", "pose"
 
 
-L1 = 0.15
+L1 = 0.15 # get real values
 L2 = 0.12
 L3 = 0.10
 L4 = 0.08
