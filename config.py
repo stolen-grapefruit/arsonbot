@@ -1,5 +1,5 @@
 import numpy as np
-CONTROL_MODE = "ibvs"      # Options: "ibvs", "pbvs", "hybrid"
+CONTROL_MODE = "pbvs"      # Options: "ibvs", "pbvs", "hybrid"
 VISION_MODE = "image"      # Options: "image", "pose"
 
 # Color tracking parameters
@@ -21,25 +21,24 @@ JOINT_LIMITS = [
 
 
 #DH parameters
-L1 = 0.15 #get real values
-L2 = 0.12
-L3 = 0.10
-L4 = 0.08
+L1 = 0.0 #get real values
+L2 = 0.0
+L3 = 0.1635
+L4 = 0.145
+JOINT_LENGTHS = [L1, L2, L3, L4]
 
-d1 = 0.07 # get real values m
-d2 = 0
+d1 = 0.00 # get real values m
+d2 = 0.0935
 d3 = 0
-d4 = 0.03
+d4 = 0
+JOINT_OFFSET = [d1, d2, d3, d4]
 
-alpha1 = 90
-alpha2 = 0
+alpha1 = 0 
+alpha2 = np.deg2rad(90)
 alpha3 = 0
 alpha4 = 0
-
+JOINT_TWIST = [alpha1, alpha2, alpha3, alpha4]
 
 link_masses = [0.4, 0.3, 0.2, 0.1] # Get real values kg
 m1, m2, m3, m4 = link_masses
 g = 9.81
-
-
-

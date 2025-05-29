@@ -53,6 +53,7 @@ def quintic_trajectory(t0, tf, q0_vec, qf_vec, N=200):
 if __name__ == "__main__":
     # Example start/end joint angles [radians]
     q0 = np.radians([5, 90, 90, 90])
+    
     qf = np.radians([120, 5, 80, 60])
     t0 = 0
     tf = 8
