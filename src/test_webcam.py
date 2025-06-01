@@ -31,8 +31,8 @@ print("Checking for camera...")
 
 cap = None
 for backend in [cv2.CAP_DSHOW, cv2.CAP_MSMF, cv2.CAP_VFW]:
-    print(f"Trying backend {backend} for camera index 1")
-    temp_cap = cv2.VideoCapture(1, backend)
+    print(f"Trying backend {backend} for camera index 0")
+    temp_cap = cv2.VideoCapture(0, backend)
     time.sleep(1)  # Give some time for the camera to warm up
 
     if temp_cap.isOpened():

@@ -9,8 +9,8 @@ from dxl import (
     DynamixelMotorFactory,
     DynamixelIO,
 )
+from lpb import quintic_trajectory
 from config import motor_1, motor_2, motor_3, motor_4
-
 
 class BasicController:
     def __init__(self, motor_group):
@@ -39,8 +39,13 @@ class BasicController:
         return q_deg
 
     def move_to_positions(self, q_desired_deg):
-        # Move to desired positions
+    
+        # Trajectory generation
+        q_current_rad = np.deg2rad(self.read_current_positions())
         q_desired_rad = np.deg2rad(q_desired_deg)
+        trajectory = quintic_trajectory(0, 5, q_current_rad, q_desired_rad)
+
+
         self.motor_group.disable_torque()
         self.motor_group.set_mode(DynamixelMode.Position)
         self.motor_group.enable_torque()
@@ -51,6 +56,19 @@ class BasicController:
         }
         self.motor_group.angle_rad = desired_pos
         time.sleep(0.5)
+
+        # steps = 100
+        # duration = 5.0  # seconds
+        # step_time = duration / steps
+
+        # current_pos = self.motor_group.angle_rad
+        # for i in range(1, steps + 1):
+        #     intermediate_pos = {
+        #         dxl_id: current_pos[dxl_id] + (desired_pos[dxl_id] - current_pos[dxl_id]) * i / steps
+        #         for dxl_id in desired_pos
+        #     }
+        #     self.motor_group.angle_rad = intermediate_pos
+        #     time.sleep(step_time)
 
         # Wait until joints are within 1 degree of desired position
         abs_tol = np.radians(1.0)
@@ -68,7 +86,11 @@ class BasicController:
     def run(self):
         # run method
         current_positions = self.read_current_positions()
-        q_desired_deg = [180.0, 180.0, 180.0, 180.0]
+        # q_desired_deg = [66.18164062, 119.8828125, 33.3984375, 349.01367188] # chaos position
+        # q_desired_deg = [153.10546875, 86.48437, 90.703125, 272.19726562] # upright position
+        # q_desired_deg = [161.80664062, 110.390625, 13.88671875, 340.57617188]
+        # q_desired_deg = [193.359375, 197.13867188, 197.578125, 153.01757812]
+        q_desired_deg = [211.02539062, 104.85351562, 95.18554688, 267.45117188]
         self.move_to_positions(q_desired_deg)
 
 
@@ -76,7 +98,7 @@ if __name__ == "__main__":
     # COM port and Motor IDs
     dxl_io = DynamixelIO(device_name="COM4", baud_rate=57_600)
     motor_factory = DynamixelMotorFactory(dxl_io=dxl_io, dynamixel_model=DynamixelModel.MX28)
-    motor_group = motor_factory.create(3, 5)
+    motor_group = motor_factory.create(motor_1, motor_2, motor_3, motor_4)
 
     # Main method
     controller = BasicController(motor_group)

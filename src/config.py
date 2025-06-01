@@ -4,6 +4,9 @@
 CONTROL_MODE = "ibvs"      # Options: "ibvs", "pbvs", "hybrid"
 VISION_MODE = "image"      # Options: "image", "pose"
 
+# ----------- CAMERA SETTINGS ------------
+color_to_detect = "orange"
+
 # ----------- ROBOT PHYSICAL PARAMETERS ------------
 L1 = 0.15 # link lengths (m)
 L2 = 0.12
