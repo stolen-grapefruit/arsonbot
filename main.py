@@ -1,76 +1,35 @@
-from config import CONTROL_MODE, VISION_MODE, JOINT_LIMITS
 from motor_interface import setup_motors, read_joint_states, send_pwm_command
-from vision import get_top_pixel_from_frame
-from control import compute_control_action
+from PD_GC import PDGCController
+from lpb import quintic_trajectory  # or from lbp import lpb if you use parabolic
+import numpy as np
+import time
 from mechae263C_helpers.minilabs import FixedFrequencyLoopManager
-import cv2
+
+# Setup
+motor_group = setup_motors(control_mode="PWM")
+controller = PDGCController()
+loop = FixedFrequencyLoopManager(30)  # 30 Hz
+
+# Load trajectory
+q0 = np.radians([90, 90, 90, 90])
+qf = np.radians([120, 45, 80, 60])
+t0, tf = 0, 6
+N = int((tf - t0) * 30)
+t_vec, q_traj, qd_traj, _, _ = quintic_trajectory(t0, tf, q0, qf, N)
 
 
-def clip_joint_angles(q):
-    return np.array([
-        np.clip(angle, JOINT_LIMITS[i][0], JOINT_LIMITS[i][1])
-        for i, angle in enumerate(q)
-    ])
+# Run control loop
+print("🚀 Executing joint-space trajectory...")
+start_time = time.time()
+for i in range(N):
+    q, qdot = read_joint_states(motor_group)
+    q_d = q_traj[i]
+    qd_d = qd_traj[i]
 
+    tau = controller.update(q, qdot, q_d, qd_d)
+    pwm = controller.torque_to_pwm(tau)
+    send_pwm_command(motor_group, pwm)
 
+    loop.sleep()
 
-def get_visual_info(mode="side"):
-    cap = cv2.VideoCapture(0)
-    ret, frame = cap.read()
-    cap.release()
-
-    if not ret:
-        return {"error": None}
-
-    pixel_info, _ = get_top_pixel_from_frame(frame)
-    if pixel_info:
-        x_top, y_top, x_off, y_off = pixel_info
-
-        # Define image-space error (e.g., offset from center or goal)
-        # For now, assume goal is fixed pixel location (e.g., center x, target y)
-        # Adjust as needed
-        goal_pixel = [x_top, y_off]  # target location in image
-        error = np.array([x_top - goal_pixel[0], y_top - goal_pixel[1]])
-
-        return {"error": error}
-
-    return {"error": None}
-
-
-
-def main():
-    motor_group = setup_motors()
-    loop = FixedFrequencyLoopManager(30)  # 30 Hz
-    should_continue = True
-
-    while should_continue:
-        q, qdot = read_joint_states(motor_group)
-
-        visual_info = get_visual_info(mode=VISION_MODE)
-        if visual_info["error"] is None:
-            continue  # Skip this loop if no visual target
-        
-        if visual_info["error"] is None:
-        print("⚠️ No visual error detected — skipping control.")
-        continue
-
-        u = compute_control_action(
-            mode=CONTROL_MODE,
-            error=visual_info["error"],
-            q=q,
-            qdot=qdot
-        )
-        print("q:", q)
-        print("qdot:", qdot)
-        print("u (control signal):", u)
-
-        send_pwm_command(motor_group, u)
-        loop.sleep()
-
-
-        print("Visual error:", visual_info["error"])
-        print("Computed command (u):", u)
-
-
-if __name__ == "__main__":
-    main()
+print("✅ Trajectory complete!")

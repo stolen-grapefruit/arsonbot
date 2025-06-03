@@ -10,7 +10,6 @@ from config import m1, m2, m3, m4, g
 from FK import compute_forward_kinematics
 
 
-
 def compute_gravity_torque(q):
     """
     Calculate gravity compensation torques for a 4R manipulator.
@@ -21,6 +20,7 @@ def compute_gravity_torque(q):
     Returns:
         np.ndarray: Torque vector [tau1, tau2, tau3, tau4]
     """
+    
     # Get link transforms from FK
     transforms = compute_forward_kinematics(q, return_all_links=True)
 
@@ -48,3 +48,5 @@ if __name__ == "__main__":
     q_example = np.radians([30, 20, -15, 10])
     tau = compute_gravity_torque(q_example)
     print("Gravity torques [Nm]:", tau)
+
+

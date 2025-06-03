@@ -19,6 +19,9 @@ JOINT_LIMITS = [
     (-np.pi/2, np.pi/2),    # Joint 4
 ]
 
+# Safe startup joint angles in degrees (home position)
+INITIAL_POSITION_DEG = [90, 90, 90, 90]  # Example: all joints upright
+
 
 #DH parameters
 L1 = 0.0 #get real values
@@ -39,6 +42,23 @@ alpha3 = 0
 alpha4 = 0
 JOINT_TWIST = [alpha1, alpha2, alpha3, alpha4]
 
-link_masses = [0.4, 0.3, 0.2, 0.1] # Get real values kg
-m1, m2, m3, m4 = link_masses
+link_masses = [0.29, 0.029, 0.029, 0.01] # Get real values kg
+motor_mass = 0.077 #kg
+
+
+link_COM_fractions = [
+    (link_masses[0] * 0.5 + motor_mass * 1.0) / (link_masses[0] + motor_mass),   # Link 1
+    (link_masses[1] * 0.5 + motor_mass * 1.0) / (link_masses[1] + motor_mass), # Link 2
+    (link_masses[2] * 0.5 + motor_mass * 1.0) / (link_masses[2] + motor_mass), # Link 3
+    (link_masses[3] * 0.5 + motor_mass * 1.0) / (link_masses[3] + motor_mass),   # Link 4
+]
+
+# Center of mass distance from joint origin (meters)
+lc1 = link_COM_fractions[0] * L1
+lc2 = link_COM_fractions[1] * L2
+lc3 = link_COM_fractions[2] * L3
+lc4 = link_COM_fractions[3] * L4
+
+
+
 g = 9.81
