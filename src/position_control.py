@@ -106,7 +106,7 @@ class BasicController:
     def run(self):
         # run method
         current_positions = self.read_current_positions()
-        q_desired_deg =[355,95,356,227]
+        q_desired_deg =[171,67,204,227]
         self.move_to_positions(q_desired_deg)
 
 
