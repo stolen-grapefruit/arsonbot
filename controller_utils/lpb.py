@@ -1,7 +1,5 @@
 import numpy as np
 import matplotlib.pyplot as plt
-# from main import qf_deg
-# from config import INITIAL_POSITION_DEG
 
 def quintic_trajectory(t0, tf, q0_vec, qf_vec, N=200):
     """
@@ -54,7 +52,6 @@ def quintic_trajectory(t0, tf, q0_vec, qf_vec, N=200):
 # === DEBUG PLOT ===
 if __name__ == "__main__":
     # Example start/end joint angles [radians]
-    # q0 = np.radians([5, 90, 90, 90])
     q0 = np.radians([117, 180, 96, 236])
     qf = np.radians([180, 180, 180, 180])
     

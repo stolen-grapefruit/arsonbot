@@ -2,13 +2,13 @@
 
 import numpy as np
 from mechae263C_helpers.minilabs import DCMotorModel
-from controller_utils.gravity import compute_gravity_torque
+from gravity import compute_gravity_torque
 
 
 class PDGCController:
     def __init__(self, K_P=None, K_D=None, control_freq=30.0, pwm_limits=None):
         self.K_P = np.diag([2.5, 2.0, 2.0, 1.5]) if K_P is None else np.array(K_P)
-        self.K_D = np.diag([0.0, 0.0, 0.0, 0.0]) if K_D is None else np.array(K_D)
+        self.K_D = np.diag([0.05, 0.04, 0.04, 0.03]) if K_D is None else np.array(K_D)
         self.dt = 1.0 / control_freq
 
         if pwm_limits is None:
@@ -37,7 +37,7 @@ class PDGCController:
 class PDControllerNoGravity:
     def __init__(self, K_P=None, K_D=None, control_freq=30.0, pwm_limits=None):
         self.K_P = np.diag([0.025, 0.02, 0.02, 0.015]) if K_P is None else np.array(K_P)
-        self.K_D = np.diag([0.0, 0.0, 0.0, 0.0]) if K_D is None else np.array(K_D)
+        self.K_D = np.diag([0.05, 0.05, 0.05, 0.05]) if K_D is None else np.array(K_D)
         self.dt = 1.0 / control_freq
 
         if pwm_limits is None:
@@ -52,10 +52,8 @@ class PDControllerNoGravity:
 
         error = q_desired - q
         derror = qdot_desired - qdot
-        qdeg = np.rad2deg(q)
-        qdesdeg = np.rad2deg(q_desired)
-        print(f"q: {qdeg}")
-        print(f"q desired: {qdesdeg}")
+        print(f"qdot: {qdot}")
+        print(f"qdot desired: {qdot_desired}")
 
         tau = self.K_P @ error + self.K_D @ derror
         return tau

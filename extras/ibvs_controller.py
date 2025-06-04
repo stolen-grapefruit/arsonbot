@@ -1,5 +1,5 @@
 import numpy as np
-from gravity import compute_gravity_torque
+from controller_utils.gravity import compute_gravity_torque
 from image_jacobian import compute_image_jacobian
 
 

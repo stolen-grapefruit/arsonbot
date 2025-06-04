@@ -5,9 +5,9 @@ import time
 import matplotlib.pyplot as plt
 
 from config import INITIAL_POSITION_DEG, USE_GRAVITY_COMP
-from motor_interface import setup_motors, read_joint_states, send_pwm_command
-from lpb import quintic_trajectory
-from IK import inverse_kinematics
+from controller_utils.motor_interface import setup_motors, read_joint_states, send_pwm_command
+from controller_utils.lpb import quintic_trajectory
+from controller_utils.IK import inverse_kinematics
 from mechae263C_helpers.minilabs import FixedFrequencyLoopManager
 
 # Select controller based on gravity compensation flag
@@ -25,7 +25,7 @@ motor_group = setup_motors(control_mode="PWM")
 # === Compute joint-space goal from IK ===
 q0 = np.radians(INITIAL_POSITION_DEG)
 # qf_deg = inverse_kinematics(*TARGET_XYZ)
-qf_deg = np.array([180, 180, 180, 180])
+qf_deg = np.array([120, 100, 220, 160])
 qf = np.radians(qf_deg)
 
 # === Generate quintic trajectory in joint space ===
