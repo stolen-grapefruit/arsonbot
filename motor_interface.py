@@ -1,13 +1,13 @@
 # motor_interface.py
 
-from dxl import DynamixelIO, DynamixelModel, DynamixelMotorFactory
+from dxl import DynamixelIO, DynamixelMode, DynamixelModel, DynamixelMotorFactory
 import numpy as np
 from config import INITIAL_POSITION_DEG
 import time
 
 
 def setup_motors(control_mode="PWM", use_home_position=True):
-    dxl_io = DynamixelIO(device_name="COM3", baud_rate=57_600)
+    dxl_io = DynamixelIO(device_name="COM4", baud_rate=57_600)
     motor_factory = DynamixelMotorFactory(dxl_io, DynamixelModel.MX28)
     motor_group = motor_factory.create(1, 2, 3, 4)
 
@@ -16,7 +16,8 @@ def setup_motors(control_mode="PWM", use_home_position=True):
     if use_home_position and INITIAL_POSITION_DEG is not None:
         # Move to safe home position before switching to PWM mode
         print("🔄 Moving to initial joint configuration...")
-        motor_group.set_mode("Position")
+        # motor_group.set_mode("Position")
+        motor_group.set_mode(DynamixelMode.PWM)
 
         home_rad = {
             dxl_id: np.deg2rad(deg)
@@ -27,7 +28,10 @@ def setup_motors(control_mode="PWM", use_home_position=True):
 
         motor_group.disable_torque()
 
-    motor_group.set_mode(control_mode)
+    # motor_group.set_mode(control_mode)
+    if control_mode == "PWM":
+        motor_group.set_mode(DynamixelMode.PWM)
+
     motor_group.enable_torque()
 
     return motor_group

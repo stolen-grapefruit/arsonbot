@@ -1,7 +1,7 @@
 import numpy as np
 
 # === Control & Execution Flags ===
-USE_GRAVITY_COMP = True  # Toggle PD vs PD+GC
+USE_GRAVITY_COMP = False  # Toggle PD vs PD+GC
 CONTROL_MODE = "pbvs"    # For future vision mode expansion
 VISION_MODE = "image"    # "image" or "pose"
 
@@ -45,6 +45,7 @@ JOINT_TWIST = [alpha1, alpha2, alpha3, alpha4]
 
 # === Mass and COM Info ===
 link_masses = [0.29, 0.029, 0.029, 0.01]  # kg
+m1, m2, m3, m4 = link_masses
 
 motor_mass = 0.077  # kg
 

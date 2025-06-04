@@ -10,7 +10,7 @@ Link lengths and constants are imported from config.py
 import numpy as np
 from config import L1, L2, L3, L4  # Link lengths in inches or desired units
 
-def inverse_kinematics(x: float, y: float, z: float) -> np.ndarray:
+def inverse_kinematics(x: float, y: float, z: float):
     """
     Computes inverse kinematics solution for a 4R manipulator.
 

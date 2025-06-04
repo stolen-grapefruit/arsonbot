@@ -17,19 +17,20 @@ else:
     from PD_GC import PDControllerNoGravity as Controller
 
 # === USER INPUT: Desired end-effector task-space position (meters) ===
-TARGET_XYZ = (0.1, 0.1, 0.1)  # Example: adjust to your candle location
+# TARGET_XYZ = (0.1, 0.1, 0.1)  # Example: adjust to your candle location
 
 # === Setup motors ===
 motor_group = setup_motors(control_mode="PWM")
 
 # === Compute joint-space goal from IK ===
 q0 = np.radians(INITIAL_POSITION_DEG)
-qf_deg = inverse_kinematics(*TARGET_XYZ)
+# qf_deg = inverse_kinematics(*TARGET_XYZ)
+qf_deg = np.array([180, 180, 180, 180])
 qf = np.radians(qf_deg)
 
 # === Generate quintic trajectory in joint space ===
-t0, tf = 0.0, 6.0
-freq = 30  # Hz
+t0, tf = 0.0, 10.0
+freq = 5  # Hz
 N = int((tf - t0) * freq)
 t_vec, q_traj, qd_traj, _, _ = quintic_trajectory(t0, tf, q0, qf, N)
 
