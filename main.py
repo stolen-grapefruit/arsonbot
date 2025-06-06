@@ -21,7 +21,7 @@ motor_group = setup_motors(control_mode="PWM")
 q0 = np.radians(INITIAL_POSITION_DEG)
 qf = np.radians(FINAL_POSITION_DEG)
 
-t0, tf = 0.0, 6.0
+t0, tf = 0.0, 5.0
 freq = 30  # Hz
 N = int((tf - t0) * freq)
 t_vec, q_traj, qd_traj, _, _ = quintic_trajectory(t0, tf, q0, qf, N)
@@ -76,6 +76,7 @@ time_log = np.array(time_log)
 print("\n📊 Average PWM (abs):", np.round(np.mean(np.abs(pwm_log), axis=0), 1))
 print("📊 Max Torque [Nm]:", np.round(np.max(np.abs(tau_log), axis=0), 3))
 
+# === Plot Joint Positions ===
 # === Plot Joint Positions with Desired Trajectory Overlay ===
 fig1, axs1 = plt.subplots(4, 1, figsize=(10, 8), sharex=True)
 for i in range(4):
