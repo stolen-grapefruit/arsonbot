@@ -183,7 +183,8 @@ class PDwGravityCompensationController:
 
     def calc_gravity_compensation_torque(
         self, joint_positions_rad: NDArray[np.double]
-    ) -> NDArray[np.double]:
+        ):
+
         q1, q2 = joint_positions_rad
       
         from math import cos
@@ -284,7 +285,7 @@ if __name__ == "__main__":
 
     # TODO: Replace "..." below with the correct Dynamixel IDs found from Dynamixel Wizard 
     #       (in order of closest to base frame first)
-    dynamixel_ids = 3, 5
+    dynamixel_ids = 2, 5
 
     motor_group = motor_factory.create(*dynamixel_ids)
 
