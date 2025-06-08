@@ -8,7 +8,7 @@ if defined _OLD_CODEPAGE (
     "%SystemRoot%\System32\chcp.com" 65001 > nul
 )
 
-set VIRTUAL_ENV=C:\Users\dishw\OneDrive - UCLA IT Services\Spring 2025\263C Controls of Robotic Systems\Final\arsonbot\venv
+set VIRTUAL_ENV=C:\Users\jessi\Desktop\MAE263C\Project\arsonbot\venv
 
 if not defined PROMPT set PROMPT=$P$G
 

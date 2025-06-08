@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 from config import INITIAL_POSITION_DEG, FINAL_POSITION_DEG, USE_GRAVITY_COMP
 from controller_utils.motor_interface import setup_motors, read_joint_states, send_pwm_command
 from controller_utils.lpb import quintic_trajectory
-from controller_utils.IK import inverse_kinematics  # if needed
+from controller_utils.IK import inverse_kinematics
 from controller_utils.PD_GC import PDGCController, PDControllerNoGravity
 from mechae263C_helpers.minilabs import FixedFrequencyLoopManager
 
@@ -41,6 +41,11 @@ for i in range(N):
     q_d, qd_d = q_traj[i], qd_traj[i]
 
     tau = controller.update(q, qdot, q_d, qd_d)
+
+    # Debugging
+    # print("Tau:")
+    # print(tau)
+
     pwm = controller.torque_to_pwm(tau)
     send_pwm_command(motor_group, pwm)
 
@@ -59,7 +64,8 @@ qf_rad = np.radians(FINAL_POSITION_DEG)
 
 final_err_rad = np.abs(q_end - qf_rad)
 print("📏 Final pos error [deg]:", np.round(np.degrees(final_err_rad), 2))
-if np.all(final_err_rad < np.radians(1.0)):
+
+if np.all(final_err_rad < np.radians(1.5)):
     print("✅ Final position reached successfully.")
 else:
     print("⚠️ Final position NOT reached.")

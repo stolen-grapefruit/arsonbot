@@ -87,13 +87,13 @@ def setup_motors(control_mode="PWM", use_home_position=True):
     return motor_group
 
 
-def read_joint_states(motor_group, debug=False):
+def read_joint_states(motor_group, debug=True):
     q = np.array(list(motor_group.angle_rad.values()))
     qdot = np.array(list(motor_group.velocity_rad_per_s.values()))
 
     if debug:
-        print("📡 Joint Angles [rad]:", q)
-        print("📡 Joint Velocities [rad/s]:", qdot)
+        print("Joint Angles [rad]:", q)
+        print("Joint Velocities [rad/s]:", qdot)
 
     return q, qdot
 

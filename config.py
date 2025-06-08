@@ -1,6 +1,6 @@
 import numpy as np
 # === Control & Execution Flags ===
-USE_GRAVITY_COMP = True  # Toggle PD vs PD+GC
+USE_GRAVITY_COMP = False  # Toggle PD vs PD+GC
 CONTROL_MODE = "pbvs"    # For future vision mode expansion
 VISION_MODE = "image"    # "image" or "pose"
 
@@ -12,7 +12,7 @@ TARGET_PIXEL_OFFSET = (0, 40)
 ENDEFFECTOR_PIXEL_OFFSET = (0, 0)
 MIN_BLOB_SIZE = 10
 
-COM_PORT = 'COM3'
+COM_PORT = 'COM4'
 
 # === Joint Angle Limits (rad) ===
 JOINT_LIMITS = [
@@ -21,6 +21,7 @@ JOINT_LIMITS = [
     (-np.pi/2, np.pi/2),    # Joint 3
     (-np.pi/2, np.pi/2),    # Joint 4
 ]
+# JOINT_LIMITS = [ (0, 360),     # Joint 1 (base) (80, 290),    # Joint 2 (40, 290),    # Joint 3 (40, 290),    # Joint 4 ]
 
 # === Initial Safe Joint Angles ===
 INITIAL_POSITION_DEG = [180, 180, 180, 180]  # Safe upright home position
