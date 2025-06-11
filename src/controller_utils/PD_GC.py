@@ -12,8 +12,8 @@ class PDControllerNoGravity:
         pwm_limits=None,
         debug=False
     ):
-        self.K_P = np.diag([2000, 4250, 4000, 3000]) if K_P is None else np.atleast_2d(K_P)
-        self.K_D = np.diag([150, 250, 250, 250]) if K_D is None else np.atleast_2d(K_D)
+        self.K_P = np.diag([1000, 2400, 2200, 1800]) if K_P is None else np.atleast_2d(K_P)
+        self.K_D = np.diag([150, 150, 100, 30]) if K_D is None else np.atleast_2d(K_D)
         self.dt = 1.0 / control_freq
         self.pwm_limits = np.ones(4) * 885 if pwm_limits is None else np.array(pwm_limits)
         self.debug = debug
@@ -52,7 +52,7 @@ class PDControllerNoGravity:
         gravity_pwm = self.convert_gravity(gravity_term)
 
         print(f"Gravity Comp: ", gravity_pwm)
-        # pwm_out = pwm_out + gravity_pwm
+        pwm_out = pwm_out + gravity_pwm
 
         if self.debug:
             print("---- PD DEBUG ----")

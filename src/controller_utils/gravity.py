@@ -23,7 +23,7 @@ def compute_gravity_torque(q):
     """
     q1, q2, q3, q4 = q[0], q[1], q[2], q[3]
     q2 = q2 - np.pi/2
-    q3 = q3 - np.pi/2
+    q3 = q3 - np.pi
 
     # link parameters
     l1, l2, l3, l4 = L1, L2, L3, L4
@@ -45,6 +45,10 @@ def compute_gravity_torque(q):
         + m3 * g * (l2 * cos(q2) + lc3 * cos(q2 + q3))
         # + m4 * g * (l2 * cos(q2) + l3 * cos(q2 + q3) + lc4 * cos(q2 + q3 + q4))
     )
+    print("q2 + q3: ")
+    print(q2+q3)
+    print("q3: ")
+    print(q3)
 
     # Torque at joint 3
     tau3 = (
@@ -55,7 +59,7 @@ def compute_gravity_torque(q):
     # Torque at joint 4
     tau4 = m4 * g * lc4 * cos(q2 + q3 + q4)
 
-    return -np.array([0, tau2, tau3, 0])
+    return np.array([0, tau2, tau3, 0])
 
 
 if __name__ == "__main__":

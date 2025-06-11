@@ -12,13 +12,13 @@ from mechae263C_helpers.minilabs import FixedFrequencyLoopManager
 GOAL_POSITIONS_DEG = [
     [113.8, 142.0, 118.3, 140.2],
     [170.0, 142.0, 118.3, 140.2],
-    [170.0, 180.0, 118.3, 140.2],
-    [170.0, 180.0, 180.0, 90.0],
+    # [170.0, 150.0, 118.3, 140.2],
+    # [170.0, 180.0, 180.0, 90.0],
     [180, 180, 180, 90],  # Reset to upright position
 ]
 
 SEGMENT_DURATION = 10.0  # seconds
-TIME_SCALING = 0.17
+TIME_SCALING = 0.04
 MIN_TIME_SCALE = 0.17
 CONTROL_FREQ = 30       # Hz
 
