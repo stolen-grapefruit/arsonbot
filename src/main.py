@@ -10,15 +10,15 @@ from mechae263C_helpers.minilabs import FixedFrequencyLoopManager
 
 # === Define Multiple Goal Positions ===
 GOAL_POSITIONS_DEG = [
-    [113.8, 142.0, 118.3, 140.2],
-    [170.0, 142.0, 118.3, 140.2],
+    [121.2, 133.5, 137.0, 117.0],
+    [160.7, 165.0, 81, 159],
     # [170.0, 150.0, 118.3, 140.2],
     # [170.0, 180.0, 180.0, 90.0],
     [180, 180, 180, 90],  # Reset to upright position
 ]
 
 SEGMENT_DURATION = 10.0  # seconds
-TIME_SCALING = 0.04
+TIME_SCALING = 0.03
 MIN_TIME_SCALE = 0.17
 CONTROL_FREQ = 30       # Hz
 
@@ -75,6 +75,7 @@ def run_full_trajectory(q_traj, qd_traj, freq=CONTROL_FREQ):
     q_goal = q_traj[-1]
     err = np.degrees(np.abs(q_end - q_goal))
     print("Final Position Error [deg]:", np.round(err, 2))
+    time.sleep(3.0)
     return np.array(joint_log), np.array(tau_log), np.array(pwm_log), np.array(time_log), np.array(q_traj)
 
 
