@@ -12,8 +12,8 @@ class PDControllerNoGravity:
         pwm_limits=None,
         debug=False
     ):
-        self.K_P = np.diag([2000, 4250, 3500, 3000]) if K_P is None else np.atleast_2d(K_P)
-        self.K_D = np.diag([150, 350, 350, 250]) if K_D is None else np.atleast_2d(K_D)
+        self.K_P = np.diag([2000, 4250, 4000, 3000]) if K_P is None else np.atleast_2d(K_P)
+        self.K_D = np.diag([150, 250, 250, 250]) if K_D is None else np.atleast_2d(K_D)
         self.dt = 1.0 / control_freq
         self.pwm_limits = np.ones(4) * 885 if pwm_limits is None else np.array(pwm_limits)
         self.debug = debug
@@ -45,12 +45,14 @@ class PDControllerNoGravity:
         error = q_desired - q
         derror = qdot_desired - qdot
         pwm_out = self.K_P @ error + self.K_D @ derror
+        print(f"PWM: ", pwm_out)
 
         # ADDING GRAVITY
-        gravity_term = 10000 * compute_gravity_torque(q)
-        print(f"PWM: ", pwm_out)
-        print(f"Gravity Comp: ", gravity_term)
-        pwm_out = pwm_out + gravity_term
+        gravity_term = compute_gravity_torque(q)
+        gravity_pwm = self.convert_gravity(gravity_term)
+
+        print(f"Gravity Comp: ", gravity_pwm)
+        # pwm_out = pwm_out + gravity_pwm
 
         if self.debug:
             print("---- PD DEBUG ----")
@@ -61,9 +63,19 @@ class PDControllerNoGravity:
                 print("PWM too small — won't move motors.")
 
         return pwm_out
+    
+    def convert_gravity(self, torque):
+        MAX_TORQUE = 2.5  # Nm for MX-28AR at 12V
+        MAX_PWM = 885     # max PWM value
+
+        pwm = (torque / MAX_TORQUE) * MAX_PWM
+        pwm = np.clip(pwm, -MAX_PWM, MAX_PWM)  # safety clipping
+        return pwm.astype(int)
 
     def torque_to_pwm(self, tau):
-        return tau  # identity mapping — not needed if update() returns PWM directly
+        # Bypassed entirely: tau is treated as PWM
+        return tau
+
 
 
 ################################# PD with Gravity Comp #################################

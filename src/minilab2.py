@@ -52,9 +52,9 @@ class PDwGravityCompensationController:
         # ------------------------------------------------------------------------------
         # Manipulator Parameters
         # ------------------------------------------------------------------------------
-        self.m1, self.m2 = 0.193537, 0.0156075
-        self.lc1, self.lc2 = 0.0533903, 0.0281188
-        self.l1 = 0.0675
+        self.m1, self.m2 = 0.29, 0.029
+        self.lc1, self.lc2 = 0.14, 0.14
+        self.l1 = 0.163
         # ------------------------------------------------------------------------------
 
 
@@ -157,6 +157,8 @@ class PDwGravityCompensationController:
             # This code converts the torque control action into a PWM command using a
             # model of the dynamixel motors
             pwm_command = self.motor_model.calc_pwm_command(u)
+            print("PWM COMMAND:")
+            print(pwm_command)
 
             # TODO:  Sending Joint PWM Commands (Question 4)
             # Replace "..." with the calculated `pwm_command` variable
