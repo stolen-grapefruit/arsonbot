@@ -47,7 +47,7 @@ alpha4 = 0.0
 JOINT_TWIST = [alpha1, alpha2, alpha3, alpha4]
 
 # === Mass and COM Info ===
-link_masses = [0.29, 0.029, 0.029, 0.01]  # kg
+link_masses = [0.0, 0.029, 0.029, 0.01]  # kg
 m1, m2, m3, m4 = link_masses
 
 motor_mass = 0.077  # kg

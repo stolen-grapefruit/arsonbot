@@ -65,6 +65,7 @@ class PDControllerNoGravity:
         return pwm_out
     
     def convert_gravity(self, torque):
+        # Converting gravity term from torque to pwm!!!
         MAX_TORQUE = 2.5  # Nm for MX-28AR at 12V
         MAX_PWM = 885     # max PWM value
 

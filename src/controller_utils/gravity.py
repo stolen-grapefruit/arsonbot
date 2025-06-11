@@ -22,9 +22,14 @@ def compute_gravity_torque(q):
         np.ndarray: Torque vector [tau1, tau2, tau3, tau4]
     """
     q1, q2, q3, q4 = q[0], q[1], q[2], q[3]
+    q2 = q2 - np.pi/2
+    q3 = q3 - np.pi/2
 
     # link parameters
     l1, l2, l3, l4 = L1, L2, L3, L4
+    m2 = 0.11
+    m3 = 0.11
+    # print(f"Link COMS (kg): ", lc1, lc2, lc3, lc4)
 
     # Torque at joint 1
     tau1 = (
@@ -38,19 +43,19 @@ def compute_gravity_torque(q):
     tau2 = (
         m2 * g * lc2 * cos(q2)
         + m3 * g * (l2 * cos(q2) + lc3 * cos(q2 + q3))
-        + m4 * g * (l2 * cos(q2) + l3 * cos(q2 + q3) + lc4 * cos(q2 + q3 + q4))
+        # + m4 * g * (l2 * cos(q2) + l3 * cos(q2 + q3) + lc4 * cos(q2 + q3 + q4))
     )
 
     # Torque at joint 3
     tau3 = (
         m3 * g * lc3 * cos(q2 + q3)
-        + m4 * g * (l3 * cos(q2 + q3) + lc4 * cos(q2 + q3 + q4))
+        # + m4 * g * (l3 * cos(q2 + q3) + lc4 * cos(q2 + q3 + q4))
     )
 
     # Torque at joint 4
     tau4 = m4 * g * lc4 * cos(q2 + q3 + q4)
 
-    return -np.array([0, tau2, tau3, tau4])
+    return -np.array([0, tau2, tau3, 0])
 
 
 if __name__ == "__main__":
