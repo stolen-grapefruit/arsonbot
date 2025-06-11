@@ -1,168 +1,109 @@
-import math
-import signal
-import time
-from collections import deque
-from collections.abc import Sequence
-from datetime import datetime
-
 import numpy as np
-from dxl import (
-    DynamixelMode, 
-    DynamixelModel, 
-    DynamixelMotorGroup, 
-    DynamixelMotorFactory, 
-    DynamixelIO
-)
-from matplotlib import pyplot as plt
-from numpy.typing import NDArray
+import time
+import matplotlib.pyplot as plt
 
-from mechae263C_helpers.minilabs import FixedFrequencyLoopManager, DCMotorModel
+from config import INITIAL_POSITION_DEG, USE_GRAVITY_COMP
+from controller_utils.motor_interface import setup_motors, read_joint_states, send_pwm_command
+from controller_utils.lpb import quintic_trajectory
+from controller_utils.PD_GC import PDGCController, PDControllerNoGravity
+from mechae263C_helpers.minilabs import FixedFrequencyLoopManager
+
+# === Define Multiple Goal Positions ===
+GOAL_POSITIONS_DEG = [
+    [113.8, 142.0, 118.3, 140.2],
+    [170.0, 142.0, 118.3, 140.2],
+    [170.0, 180.0, 118.3, 140.2],
+    [170.0, 180.0, 180.0, 90.0],
+    [180, 180, 180, 90],  # Reset to upright position
+]
+
+SEGMENT_DURATION = 10.0  # seconds
+TIME_SCALING = 0.17
+MIN_TIME_SCALE = 0.17
+CONTROL_FREQ = 30       # Hz
 
 
-class PD_Controller:
-    def __init__(
-        self,
-        motor_group: DynamixelMotorGroup,
-        K_P: NDArray[np.double],
-        K_D: NDArray[np.double],
-        q_desired_deg: Sequence[float],
-        max_duration_s: float = 2.0,
-    ):
-        # Motor Communication
-        self.motor_group = motor_group
+def build_full_trajectory(initial_deg, goals_deg, duration=SEGMENT_DURATION, freq=CONTROL_FREQ):
+    q_full = []
+    qd_full = []
+    q_start = np.radians(initial_deg)
 
-        # Controller Setup
-        self.q_desired_rad = np.deg2rad(q_desired_deg)
-        self.K_P = np.asarray(K_P, dtype=np.double)
-        self.K_D = np.asarray(K_D, dtype=np.double)
+    for q_end_deg in goals_deg:
+        joint_delta = np.rad2deg(np.max(np.abs(np.radians(q_end_deg) - q_start)))
+        duration = joint_delta * TIME_SCALING
+        print(f"Duration: ", duration)
 
-        # Control Loop Setup
-        self.control_freq_Hz = 30.0
-        self.max_duration_s = float(max_duration_s)
-        self.control_period_s = 1 / self.control_freq_Hz
-        self.loop_manager = FixedFrequencyLoopManager(self.control_freq_Hz)
-        self.should_continue = True
+        q_end = np.radians(q_end_deg)
+        N = int(duration * freq)
+        _, q_traj, qd_traj, _, _ = quintic_trajectory(0.0, duration, q_start, q_end, N)
+        q_full.append(q_traj)
+        qd_full.append(qd_traj)
+        q_start = q_end  # next segment starts where previous ended
 
-        # Read initial joint positions
-        current_rad = np.asarray(list(self.motor_group.angle_rad.values()))
-        self.q_initial_rad = current_rad.copy()
-        print("Initial joint positions (deg):", np.degrees(self.q_initial_rad))
+    return np.vstack(q_full), np.vstack(qd_full)
 
-        # Logging
-        self.joint_position_history = deque()
-        self.time_stamps = deque()
 
-        # DC Motor Model
-        self.pwm_limits = np.asarray(
-            [info.pwm_limit for info in self.motor_group.motor_info.values()]
-        )
-        self.motor_model = DCMotorModel(
-            self.control_period_s, pwm_limits=self.pwm_limits
-        )
+def run_full_trajectory(q_traj, qd_traj, freq=CONTROL_FREQ):
+    controller_cls = PDGCController if USE_GRAVITY_COMP else PDControllerNoGravity
+    controller = controller_cls()
 
-        # Exit Handling
-        signal.signal(signal.SIGINT, self.signal_handler)
-        signal.signal(signal.SIGTERM, self.signal_handler)
+    motor_group = setup_motors(control_mode="PWM")
 
-        # Set to PWM mode
-        self.motor_group.disable_torque()
-        self.motor_group.set_mode(DynamixelMode.PWM)
-        self.motor_group.enable_torque()
+    loop = FixedFrequencyLoopManager(freq)
+    joint_log, tau_log, pwm_log, time_log = [], [], [], []
+    start_time = time.time()
 
-    def start_control_loop(self):
-        start_time = time.time()
+    print("Starting full continuous trajectory...")
 
-        while self.should_continue:
-            # Read joint states
-            q_rad = np.asarray(list(self.motor_group.angle_rad.values()))
-            qdot_rad_per_s = q_rad.copy()  # Simplified for now (no velocity sensor)
+    for i in range(len(q_traj)):
+        q, qdot = read_joint_states(motor_group)
+        q_d, qd_d = q_traj[i], qd_traj[i]
+        tau = controller.update(q, qdot, q_d, qd_d)
+        pwm = controller.torque_to_pwm(tau)
+        send_pwm_command(motor_group, pwm)
 
-            # Logging
-            self.joint_position_history.append(q_rad)
-            self.time_stamps.append(time.time() - start_time)
+        joint_log.append(q)
+        tau_log.append(tau)
+        pwm_log.append(pwm)
+        time_log.append(time.time() - start_time)
 
-            # Stop after duration
-            if self.time_stamps[-1] > self.max_duration_s:
-                self.stop()
-                return
+        loop.sleep()
 
-            # PD Control
-            q_error = self.q_desired_rad - q_rad
-            gravity_comp_torques = self.calc_gravity_compensation_torque(q_rad)
-            u = self.K_P @ q_error - self.K_D @ qdot_rad_per_s + gravity_comp_torques
-            pwm_command = self.motor_model.calc_pwm_command(u)
+    # Final position check
+    time.sleep(2.0)
+    q_end, _ = read_joint_states(motor_group)
+    q_goal = q_traj[-1]
+    err = np.degrees(np.abs(q_end - q_goal))
+    print("Final Position Error [deg]:", np.round(err, 2))
+    return np.array(joint_log), np.array(tau_log), np.array(pwm_log), np.array(time_log), np.array(q_traj)
 
-            # Apply PWM
-            self.motor_group.pwm = {
-                dxl_id: pwm
-                for dxl_id, pwm in zip(self.motor_group.dynamixel_ids, pwm_command, strict=True)
-            }
 
-            # Debug print
-            # print("q [deg]:", np.degrees(q_rad))
+def plot_results(joint_log, tau_log, pwm_log, time_log, q_traj):
+    fig1, axs1 = plt.subplots(4, 1, figsize=(10, 8), sharex=True)
+    for i in range(4):
+        axs1[i].plot(time_log, np.degrees(joint_log[:, i]), label=f"Joint {i+1} actual", linewidth=2)
+        axs1[i].plot(time_log, np.degrees(q_traj[:, i]), '--', label=f"Joint {i+1} desired", linewidth=1)
+        axs1[i].set_ylabel(f"Joint {i+1} [deg]")
+        axs1[i].legend()
+        axs1[i].grid()
+    axs1[-1].set_xlabel("Time [s]")
+    plt.suptitle("Joint Position Tracking - Full Trajectory")
+    plt.tight_layout()
 
-            # Maintain control rate
-            self.loop_manager.sleep()
-
-        self.stop()
-
-    def stop(self):
-        self.should_continue = False
-        time.sleep(2 * self.control_period_s)
-        self.motor_group.disable_torque()
-
-    def signal_handler(self, *_):
-        self.stop()
-
-    def calc_gravity_compensation_torque(self, joint_positions_rad: NDArray[np.double]):
-        return np.zeros(len(joint_positions_rad))
+    fig2, axs2 = plt.subplots(4, 1, figsize=(10, 8), sharex=True)
+    for i in range(4):
+        axs2[i].plot(time_log, tau_log[:, i], label=f"Torque Joint {i+1} [Nm]")
+        axs2[i].plot(time_log, pwm_log[:, i], '--', label=f"PWM Joint {i+1}")
+        axs2[i].set_ylabel(f"Joint {i+1}")
+        axs2[i].legend()
+        axs2[i].grid()
+    axs2[-1].set_xlabel("Time [s]")
+    plt.suptitle("Torque and PWM Commands - Full Trajectory")
+    plt.tight_layout()
 
 
 if __name__ == "__main__":
-    # Desired target joint positions
-    q_desired = [180, 180, 180, 180]
-
-    # PD Gains
-    K_P = np.diag([2.0, 2.0, 1.5, 1.5])
-    K_D = np.diag([0.001, 0.001, 0.001, 0.001])
-
-    # Set up Dynamixel interface
-    dxl_io = DynamixelIO(device_name="COM4", baud_rate=57_600)
-    motor_factory = DynamixelMotorFactory(dxl_io=dxl_io, dynamixel_model=DynamixelModel.MX28)
-    dynamixel_ids = [1, 2, 3, 4]
-    motor_group = motor_factory.create(*dynamixel_ids)
-
-    # Create controller
-    controller = PD_Controller(
-        motor_group=motor_group,
-        K_P=K_P,
-        K_D=K_D,
-        q_desired_deg=q_desired
-    )
-
-    # Run PD control loop
-    controller.start_control_loop()
-
-    # Plot results
-    time_stamps = np.asarray(controller.time_stamps)
-    joint_positions = np.rad2deg(controller.joint_position_history).T
-    date_str = datetime.now().strftime("%d-%m_%H-%M-%S")
-    fig_file_name = f"joint_positions_vs_time_{date_str}.pdf"
-
-    fig, axs = plt.subplots(2, 2, figsize=(12, 6))
-    axs = axs.flatten()
-
-    for i in range(4):
-        axs[i].plot(time_stamps, joint_positions[i], label="Motor Angle Trajectory", color="black")
-        axs[i].axhline(controller.q_desired_rad[i] * 180 / math.pi, ls="--", color="red", label="Setpoint")
-        axs[i].axhline((controller.q_desired_rad[i] * 180 / math.pi) + 1, ls=":", color="blue", label="Convergence Bound")
-        axs[i].axhline((controller.q_desired_rad[i] * 180 / math.pi) - 1, ls=":", color="blue")
-        axs[i].set_title(f"Motor Joint {i}")
-        axs[i].set_xlabel("Time [s]")
-        axs[i].set_ylabel("Motor Angle [deg]")
-        axs[i].legend()
-
-    fig.suptitle("Motor Angles vs Time")
-    fig.tight_layout()
-    fig.savefig(fig_file_name)
+    q_traj, qd_traj = build_full_trajectory(INITIAL_POSITION_DEG, GOAL_POSITIONS_DEG)
+    joint_log, tau_log, pwm_log, time_log, desired_traj = run_full_trajectory(q_traj, qd_traj)
+    plot_results(joint_log, tau_log, pwm_log, time_log, desired_traj)
     plt.show()

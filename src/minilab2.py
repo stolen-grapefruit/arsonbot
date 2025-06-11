@@ -144,6 +144,10 @@ class PDwGravityCompensationController:
             #
             # Note: This is a torque control action!
             u = self.K_P @ q_error - self.K_D @ qdot_rad_per_s + gravity_comp_torques
+            print("Gravity")
+            print(gravity_comp_torques)
+            print("PWM")
+            print(u)
             # --------------------------------------------------------------------------
 
 
