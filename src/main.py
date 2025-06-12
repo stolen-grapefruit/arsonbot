@@ -12,10 +12,19 @@ from mechae263C_helpers.minilabs import FixedFrequencyLoopManager
 
 
 # === Define Task-Space Goals via IK ===
-q_goal_1, _ = compute_IK(0.243, 0.0, 0.08, -60)
-q_goal_2, _ = compute_IK(0.243, 0.0, 0.2, -60)
-q_goal_3, _ = compute_IK(0.243, -0.112, 0.2, -60)
-q_goal_4, _ = compute_IK(0.243, -0.112, 0.09, -60)
+q_goal_1, _ = compute_IK(0.193, -0.03, 0.095, -60)
+q_goal_2, _ = compute_IK(0.193, -0.03, 0.2, -60)
+
+q_goal_3, _ = compute_IK(0.243, 0.0, 0.2, -60)
+q_goal_4, _ = compute_IK(0.243, 0.0, 0.095, -60)
+q_goal_5, _ = compute_IK(0.243, 0.0, 0.2, -60)
+
+q_goal_6, _ = compute_IK(0.243, -0.112, 0.2, -60)
+q_goal_7, _ = compute_IK(0.243, -0.112, 0.1125, -60)
+q_goal_8, _ = compute_IK(0.243, -0.112, 0.2, -60)
+
+q_goal_9, _ = compute_IK(0.193, -0.14, 0.2, -60)
+q_goal_10, _ = compute_IK(0.193, -0.14, 0.1125, -60)
 
 # === Define Waypoints ===
 GOAL_POSITIONS_DEG = [[180, 180, 180, 90]]
@@ -23,10 +32,16 @@ GOAL_POSITIONS_DEG.append(q_goal_1.tolist())
 GOAL_POSITIONS_DEG.append(q_goal_2.tolist())
 GOAL_POSITIONS_DEG.append(q_goal_3.tolist())
 GOAL_POSITIONS_DEG.append(q_goal_4.tolist())
+GOAL_POSITIONS_DEG.append(q_goal_5.tolist())
+GOAL_POSITIONS_DEG.append(q_goal_6.tolist())
+GOAL_POSITIONS_DEG.append(q_goal_7.tolist())
+GOAL_POSITIONS_DEG.append(q_goal_8.tolist())
+GOAL_POSITIONS_DEG.append(q_goal_9.tolist())
+GOAL_POSITIONS_DEG.append(q_goal_10.tolist())
 GOAL_POSITIONS_DEG.append([180, 180, 180, 90])  # Return to upright
 
 SEGMENT_DURATION = 10.0
-TIME_SCALING = 0.02
+TIME_SCALING = 0.05
 MIN_TIME_SCALE = 0.17
 CONTROL_FREQ = 30
 
