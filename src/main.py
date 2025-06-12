@@ -6,51 +6,30 @@ from config import INITIAL_POSITION_DEG, USE_GRAVITY_COMP, JOINT_LIMITS
 from controller_utils.motor_interface import setup_motors, read_joint_states, send_pwm_command
 from controller_utils.lpb import quintic_trajectory
 from controller_utils.PD_GC import PDGCController, PDControllerNoGravity
+from controller_utils.gravity import compute_gravity_torque
 from controller_utils.IK import compute_IK
 from mechae263C_helpers.minilabs import FixedFrequencyLoopManager
 
-q_goal_1, _ = compute_IK(0.243, 0.0, 0.07, -60)
+
+# === Define Task-Space Goals via IK ===
+q_goal_1, _ = compute_IK(0.243, 0.0, 0.08, -60)
 q_goal_2, _ = compute_IK(0.243, 0.0, 0.2, -60)
 q_goal_3, _ = compute_IK(0.243, -0.112, 0.2, -60)
-q_goal_4, _ = compute_IK(0.243, -0.112, 0.07, -60)
+q_goal_4, _ = compute_IK(0.243, -0.112, 0.09, -60)
 
-print("Q GOAL:")
-print(q_goal_1)
-
-# === Define Multiple Goal Positions ===
-# GOAL_POSITIONS_DEG = [
-#     [121.2, 133.5, 137.0, 117.0],
-#     [160.7, 165.0, 81, 159],
-#     [180, 180, 180, 90],  # Reset to upright position
-# ]
-
-GOAL_POSITIONS_DEG = [
-    [180, 180, 180, 90],
-]
+# === Define Waypoints ===
+GOAL_POSITIONS_DEG = [[180, 180, 180, 90]]
 GOAL_POSITIONS_DEG.append(q_goal_1.tolist())
 GOAL_POSITIONS_DEG.append(q_goal_2.tolist())
 GOAL_POSITIONS_DEG.append(q_goal_3.tolist())
 GOAL_POSITIONS_DEG.append(q_goal_4.tolist())
-GOAL_POSITIONS_DEG.append([180, 180, 180, 90])
+GOAL_POSITIONS_DEG.append([180, 180, 180, 90])  # Return to upright
 
-# BANANA MODE
-# GOAL_POSITIONS_DEG = [
-#     [140, 130, 105, 112.2],
-#     [140, 103, 105, 112.2], # slice
-#     [140, 137.3, 105, 112.2], # lift
-#     [138, 137, 107, 112], # move
-#     [137, 100, 109, 115], # slice
-#     [137, 139, 109, 115],
-#     [131, 139, 107, 114],
-#     [132, 100, 115, 114], # slice
-#     [132, 138.5, 115, 114],
-#     [180, 180, 180, 90],  # Reset to upright position
-# ]
-
-SEGMENT_DURATION = 10.0  # seconds
+SEGMENT_DURATION = 10.0
 TIME_SCALING = 0.02
 MIN_TIME_SCALE = 0.17
-CONTROL_FREQ = 30       # Hz
+CONTROL_FREQ = 30
+
 
 def check_joint_limits(q_traj_deg, segment_idx):
     for t, q_t in enumerate(q_traj_deg):
@@ -77,7 +56,6 @@ def build_full_trajectory(initial_deg, goals_deg, duration=SEGMENT_DURATION, fre
 
         _, q_traj, qd_traj, _, _ = quintic_trajectory(0.0, duration, q_start, q_end, N)
 
-        # Convert to degrees for checking
         q_traj_deg = np.rad2deg(q_traj)
         if not check_joint_limits(q_traj_deg, idx):
             print(f"[Error] Joint limits violated in segment {idx}. Skipping this segment.")
@@ -85,10 +63,9 @@ def build_full_trajectory(initial_deg, goals_deg, duration=SEGMENT_DURATION, fre
 
         q_full.append(q_traj)
         qd_full.append(qd_traj)
-        q_start = q_end  # next segment starts where previous ended
+        q_start = q_end
 
     return np.vstack(q_full), np.vstack(qd_full)
-
 
 
 def run_full_trajectory(q_traj, qd_traj, freq=CONTROL_FREQ):
@@ -98,7 +75,7 @@ def run_full_trajectory(q_traj, qd_traj, freq=CONTROL_FREQ):
     motor_group = setup_motors(control_mode="PWM")
 
     loop = FixedFrequencyLoopManager(freq)
-    joint_log, tau_log, pwm_log, time_log = [], [], [], []
+    joint_log, tau_log, pwm_log, gravity_pwm_log, time_log = [], [], [], [], []
     start_time = time.time()
 
     print("Starting full continuous trajectory...")
@@ -108,26 +85,39 @@ def run_full_trajectory(q_traj, qd_traj, freq=CONTROL_FREQ):
         q_d, qd_d = q_traj[i], qd_traj[i]
         tau = controller.update(q, qdot, q_d, qd_d)
         pwm = controller.torque_to_pwm(tau)
+
+        # Compute gravity torque → PWM for plotting
+        gravity_tau = compute_gravity_torque(q)
+        gravity_pwm = controller.convert_gravity(gravity_tau)
+
         send_pwm_command(motor_group, pwm)
 
         joint_log.append(q)
         tau_log.append(tau)
         pwm_log.append(pwm)
+        gravity_pwm_log.append(gravity_pwm)
         time_log.append(time.time() - start_time)
 
         loop.sleep()
 
-    # Final position check
     time.sleep(2.0)
     q_end, _ = read_joint_states(motor_group)
     q_goal = q_traj[-1]
     err = np.degrees(np.abs(q_end - q_goal))
     print("Final Position Error [deg]:", np.round(err, 2))
     time.sleep(3.0)
-    return np.array(joint_log), np.array(tau_log), np.array(pwm_log), np.array(time_log), np.array(q_traj)
+
+    return (
+        np.array(joint_log),
+        np.array(tau_log),
+        np.array(pwm_log),
+        np.array(gravity_pwm_log),
+        np.array(time_log),
+        np.array(q_traj)
+    )
 
 
-def plot_results(joint_log, tau_log, pwm_log, time_log, q_traj):
+def plot_results(joint_log, tau_log, pwm_log, gravity_pwm_log, time_log, q_traj):
     fig1, axs1 = plt.subplots(4, 1, figsize=(10, 8), sharex=True)
     for i in range(4):
         axs1[i].plot(time_log, np.degrees(joint_log[:, i]), label=f"Joint {i+1} actual", linewidth=2)
@@ -142,7 +132,8 @@ def plot_results(joint_log, tau_log, pwm_log, time_log, q_traj):
     fig2, axs2 = plt.subplots(4, 1, figsize=(10, 8), sharex=True)
     for i in range(4):
         axs2[i].plot(time_log, tau_log[:, i], label=f"Torque Joint {i+1} [Nm]")
-        axs2[i].plot(time_log, pwm_log[:, i], '--', label=f"PWM Joint {i+1}")
+        axs2[i].plot(time_log, pwm_log[:, i], '--', label=f"PWM Total Joint {i+1}")
+        axs2[i].plot(time_log, gravity_pwm_log[:, i], ':', label=f"PWM Gravity Joint {i+1}")
         axs2[i].set_ylabel(f"Joint {i+1}")
         axs2[i].legend()
         axs2[i].grid()
@@ -153,6 +144,6 @@ def plot_results(joint_log, tau_log, pwm_log, time_log, q_traj):
 
 if __name__ == "__main__":
     q_traj, qd_traj = build_full_trajectory(INITIAL_POSITION_DEG, GOAL_POSITIONS_DEG)
-    joint_log, tau_log, pwm_log, time_log, desired_traj = run_full_trajectory(q_traj, qd_traj)
-    plot_results(joint_log, tau_log, pwm_log, time_log, desired_traj)
+    joint_log, tau_log, pwm_log, gravity_pwm_log, time_log, desired_traj = run_full_trajectory(q_traj, qd_traj)
+    plot_results(joint_log, tau_log, pwm_log, gravity_pwm_log, time_log, desired_traj)
     plt.show()
