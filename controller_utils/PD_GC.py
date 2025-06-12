@@ -1,5 +1,12 @@
 import numpy as np
 from controller_utils.gravity import compute_gravity_torque
+from mechae263C_helpers.minilabs import DCMotorModel
+
+
+def torque_to_pwm(tau, torque_constant=0.003, pwm_limit=885):
+    pwm = tau / torque_constant
+    return np.clip(pwm, -pwm_limit, pwm_limit)
+
 
 
 class PDControllerNoGravity:
@@ -59,6 +66,9 @@ class PDControllerNoGravity:
         return tau  # identity mapping — not needed if update() returns PWM directly
 
 
+
+
+
 class PDGCController:
     def __init__(
         self,
@@ -72,9 +82,7 @@ class PDGCController:
         self.K_P = np.diag([25, 20, 20, 15]) if K_P is None else np.atleast_2d(K_P)
         self.K_D = np.diag([0.2, 0.15, 0.15, 0.1]) if K_D is None else np.atleast_2d(K_D)
         self.dt = 1.0 / control_freq
-
         self.pwm_limits = np.ones(4) * 885 if pwm_limits is None else np.array(pwm_limits)
-
         self.use_gravity = use_gravity
         self.debug = debug
 
@@ -82,25 +90,38 @@ class PDGCController:
         if qdot_desired is None:
             qdot_desired = np.zeros_like(q)
 
+        # PD term in PWM space (if gains tuned accordingly)
         error = q_desired - q
         derror = qdot_desired - qdot
+        pd_pwm = self.K_P @ error + self.K_D @ derror
 
-        pd_term = self.K_P @ error + self.K_D @ derror
-        gravity_term = compute_gravity_torque(q) if self.use_gravity else np.zeros_like(q)
+        # Gravity torque → PWM scaling
+        if self.use_gravity:
+            gravity_torque = compute_gravity_torque(q)
+            gravity_pwm = torque_to_pwm(gravity_torque)
+        else:
+            gravity_pwm = np.zeros_like(q)
 
-        pwm_out = pd_term + gravity_term  # send this directly as PWM
+        pwm_out = pd_pwm + gravity_pwm
 
         if self.debug:
             print("---- PDGC DEBUG ----")
             print("q [deg]:", np.round(np.degrees(q), 2))
             print("q_des [deg]:", np.round(np.degrees(q_desired), 2))
-            print("pwm out:", np.round(pwm_out, 1))
+            print("PWM PD term:", np.round(pd_pwm, 1))
+            print("PWM Gravity comp:", np.round(gravity_pwm, 1))
+            print("PWM total:", np.round(pwm_out, 1))
             if np.all(np.abs(pwm_out) < 5):
-                print("⚠️ WARNING: PWM values are very low. Check gain scale.")
+                print("⚠️ PWM values are very low — may not overcome stiction.")
 
         return pwm_out
 
     def torque_to_pwm(self, tau):
-        # Bypassed entirely: tau is treated as PWM
-        return tau
+        return torque_to_pwm(tau)  # optional access to reuse externally
+
+
+
+
+
+
 

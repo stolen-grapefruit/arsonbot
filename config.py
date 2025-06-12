@@ -46,11 +46,20 @@ alpha3 = 0.0
 alpha4 = 0.0
 JOINT_TWIST = [alpha1, alpha2, alpha3, alpha4]
 
-# === Mass and COM Info ===
-link_masses = [0.29, 0.029, 0.029, 0.01]  # kg
-m1, m2, m3, m4 = link_masses
 
+# === Mass and COM Info ===
+# === Link and Motor Masses ===
+link_masses = [0.29, 0.029, 0.029, 0.01]  # kg
 motor_mass = 0.077  # kg
+
+# Assume each link has a motor mounted at its proximal end
+m1 = link_masses[0] + motor_mass  # base motor + link1
+m2 = link_masses[1] + motor_mass  # motor at joint2 + link2
+m3 = link_masses[2] + motor_mass  # motor at joint3 + link3
+m4 = link_masses[3] + motor_mass  # motor at joint4 + link4
+
+
+
 
 link_COM_fractions = [
     (link_masses[0] * 0.5 + motor_mass * 1.0) / (link_masses[0] + motor_mass),
