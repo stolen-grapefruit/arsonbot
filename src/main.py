@@ -2,25 +2,64 @@ import numpy as np
 import time
 import matplotlib.pyplot as plt
 
-from config import INITIAL_POSITION_DEG, USE_GRAVITY_COMP
+from config import INITIAL_POSITION_DEG, USE_GRAVITY_COMP, JOINT_LIMITS
 from controller_utils.motor_interface import setup_motors, read_joint_states, send_pwm_command
 from controller_utils.lpb import quintic_trajectory
 from controller_utils.PD_GC import PDGCController, PDControllerNoGravity
+from controller_utils.IK import compute_IK
 from mechae263C_helpers.minilabs import FixedFrequencyLoopManager
 
+q_goal_1, _ = compute_IK(0.243, 0.0, 0.07, -60)
+q_goal_2, _ = compute_IK(0.243, 0.0, 0.2, -60)
+q_goal_3, _ = compute_IK(0.243, -0.112, 0.2, -60)
+q_goal_4, _ = compute_IK(0.243, -0.112, 0.07, -60)
+
+print("Q GOAL:")
+print(q_goal_1)
+
 # === Define Multiple Goal Positions ===
+# GOAL_POSITIONS_DEG = [
+#     [121.2, 133.5, 137.0, 117.0],
+#     [160.7, 165.0, 81, 159],
+#     [180, 180, 180, 90],  # Reset to upright position
+# ]
+
 GOAL_POSITIONS_DEG = [
-    [121.2, 133.5, 137.0, 117.0],
-    [160.7, 165.0, 81, 159],
-    # [170.0, 150.0, 118.3, 140.2],
-    # [170.0, 180.0, 180.0, 90.0],
-    [180, 180, 180, 90],  # Reset to upright position
+    [180, 180, 180, 90],
 ]
+GOAL_POSITIONS_DEG.append(q_goal_1.tolist())
+GOAL_POSITIONS_DEG.append(q_goal_2.tolist())
+GOAL_POSITIONS_DEG.append(q_goal_3.tolist())
+GOAL_POSITIONS_DEG.append(q_goal_4.tolist())
+GOAL_POSITIONS_DEG.append([180, 180, 180, 90])
+
+# BANANA MODE
+# GOAL_POSITIONS_DEG = [
+#     [140, 130, 105, 112.2],
+#     [140, 103, 105, 112.2], # slice
+#     [140, 137.3, 105, 112.2], # lift
+#     [138, 137, 107, 112], # move
+#     [137, 100, 109, 115], # slice
+#     [137, 139, 109, 115],
+#     [131, 139, 107, 114],
+#     [132, 100, 115, 114], # slice
+#     [132, 138.5, 115, 114],
+#     [180, 180, 180, 90],  # Reset to upright position
+# ]
 
 SEGMENT_DURATION = 10.0  # seconds
-TIME_SCALING = 0.03
+TIME_SCALING = 0.02
 MIN_TIME_SCALE = 0.17
 CONTROL_FREQ = 30       # Hz
+
+def check_joint_limits(q_traj_deg, segment_idx):
+    for t, q_t in enumerate(q_traj_deg):
+        for i, angle in enumerate(q_t):
+            lower, upper = JOINT_LIMITS[i]
+            if not (lower <= angle <= upper):
+                print(f"[Violation] Segment {segment_idx}, timestep {t}, joint {i+1}: angle={angle:.2f}° is outside limits [{lower}°, {upper}°]")
+                return False
+    return True
 
 
 def build_full_trajectory(initial_deg, goals_deg, duration=SEGMENT_DURATION, freq=CONTROL_FREQ):
@@ -28,19 +67,28 @@ def build_full_trajectory(initial_deg, goals_deg, duration=SEGMENT_DURATION, fre
     qd_full = []
     q_start = np.radians(initial_deg)
 
-    for q_end_deg in goals_deg:
+    for idx, q_end_deg in enumerate(goals_deg):
         joint_delta = np.rad2deg(np.max(np.abs(np.radians(q_end_deg) - q_start)))
         duration = joint_delta * TIME_SCALING
-        print(f"Duration: ", duration)
+        print(f"Duration: {duration:.2f}s")
 
         q_end = np.radians(q_end_deg)
         N = int(duration * freq)
+
         _, q_traj, qd_traj, _, _ = quintic_trajectory(0.0, duration, q_start, q_end, N)
+
+        # Convert to degrees for checking
+        q_traj_deg = np.rad2deg(q_traj)
+        if not check_joint_limits(q_traj_deg, idx):
+            print(f"[Error] Joint limits violated in segment {idx}. Skipping this segment.")
+            continue
+
         q_full.append(q_traj)
         qd_full.append(qd_traj)
         q_start = q_end  # next segment starts where previous ended
 
     return np.vstack(q_full), np.vstack(qd_full)
+
 
 
 def run_full_trajectory(q_traj, qd_traj, freq=CONTROL_FREQ):

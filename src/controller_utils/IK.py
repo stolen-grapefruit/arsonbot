@@ -1,4 +1,4 @@
-from config import L1, L2, L3, L4
+# from config import L1, L2, L3, L4
 import numpy as np
 
 def compute_IK(x, y, z, ee_angle_deg):
@@ -12,6 +12,12 @@ def compute_IK(x, y, z, ee_angle_deg):
         q_up: np.array of joint angles [q1, q2, q3, q4] in degrees (elbow-up)
         q_down: np.array of joint angles [q1, q2, q3, q4] in degrees (elbow-down)
     """
+    # === DH Parameters (meters) ===
+    L1 = 0.095    # base height
+    L2 = 0.1635     # no horizontal offset
+    L3 = 0.1635  # link 3 length
+    L4 = 0.115  # link 4 length
+
     # Convert EE angle to radians
     ee_angle = np.radians(ee_angle_deg)
 
@@ -25,8 +31,8 @@ def compute_IK(x, y, z, ee_angle_deg):
 
     # Solve planar 2R IK for L2 and L3
     D = (wx**2 + wz**2 - L2**2 - L3**2) / (2 * L2 * L3)
-    if abs(D) > 1.0:
-        raise ValueError("Target out of reach")
+    # if abs(D) > 1.0:
+    #     raise ValueError("Target out of reach")
 
     # Elbow-up solution
     theta3_up = np.arctan2(np.sqrt(1 - D**2), D)
@@ -42,8 +48,23 @@ def compute_IK(x, y, z, ee_angle_deg):
     theta2_down = np.arctan2(wz, wx) - np.arctan2(k2_down, k1_down)
     theta4_down = ee_angle - (theta2_down + theta3_down)
 
-    # Combine results and convert to degrees
-    q_up = np.degrees([theta1, theta2_up, theta3_up, theta4_up])
-    q_down = np.degrees([theta1, theta2_down, theta3_down, theta4_down])
+    # Combine results and convert to degrees FLIPPING QUP AND DOWN
+    q_down = np.degrees([theta1, theta2_up, theta3_up, theta4_up])
+    q_up = np.degrees([theta1, theta2_down, theta3_down, theta4_down])
+
+    # Offsets due to motor 0 positions
+    offsets = np.array([180, 90, 180, 180])
+    q_up += offsets
+    q_down += offsets
+
+    print("Elbow up:")
+    print(q_up)
+    print("Elbow down:")
+    print(q_down)
 
     return q_up, q_down
+
+if __name__ == "__main__":
+    # compute_IK(0.3894, 0, 0.094, 0)
+    # compute_IK(0.0, 0, 0.4845, 90)
+    compute_IK(0.26, 0, 0.16, 0)

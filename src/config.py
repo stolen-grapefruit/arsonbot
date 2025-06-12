@@ -1,7 +1,7 @@
 import numpy as np
 
 # === Control & Execution Flags ===
-USE_GRAVITY_COMP = False  # Toggle PD vs PD+GC
+USE_GRAVITY_COMP = True  # Toggle PD vs PD+GC
 CONTROL_MODE = "pbvs"    # For future vision mode expansion
 VISION_MODE = "image"    # "image" or "pose"
 
@@ -25,7 +25,6 @@ JOINT_LIMITS = [
 
 # === Initial Safe Joint Angles ===
 INITIAL_POSITION_DEG = [180, 180, 180, 90]  # Safe upright home position
-FINAL_POSITION_DEG = [160, 160, 160, 160]
 
 # === DH Parameters (meters) ===
 L1 = 0.05    # base height
