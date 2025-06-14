@@ -12,22 +12,37 @@ from mechae263C_helpers.minilabs import FixedFrequencyLoopManager
 
 
 # === Define Task-Space Goals via IK ===
-q_goal_1, _ = compute_IK(0.193, -0.03, 0.095, -60)
-q_goal_2, _ = compute_IK(0.193, -0.03, 0.2, -60)
+q_goal_init, _ = compute_IK(0.15, -0.18, 0.1, -60)
+q_goal_init_up, _ = compute_IK(0.15, -0.18, 0.18, -60)
 
-q_goal_3, _ = compute_IK(0.243, 0.0, 0.2, -60)
-q_goal_4, _ = compute_IK(0.243, 0.0, 0.095, -60)
-q_goal_5, _ = compute_IK(0.243, 0.0, 0.2, -60)
+q_goal_16, _ = compute_IK(0.194, -0.0, 0.18, -60)
+q_goal_17, _ = compute_IK(0.194, -0.0, 0.065, -60)
+q_goal_18, _ = compute_IK(0.154, -0.0, 0.18, -60)
 
-q_goal_6, _ = compute_IK(0.243, -0.112, 0.2, -60)
-q_goal_7, _ = compute_IK(0.243, -0.112, 0.1125, -60)
-q_goal_8, _ = compute_IK(0.243, -0.112, 0.2, -60)
+q_goal_13, _ = compute_IK(0.244, -0.04, 0.18, -70)
+q_goal_14, _ = compute_IK(0.244, -0.04, 0.081, -70)
+q_goal_15, _ = compute_IK(0.244, -0.04, 0.18, -70)
 
-q_goal_9, _ = compute_IK(0.193, -0.14, 0.2, -60)
-q_goal_10, _ = compute_IK(0.193, -0.14, 0.1125, -60)
+q_goal_7, _ = compute_IK(0.2, -0.08, 0.18, -70)
+q_goal_8, _ = compute_IK(0.2, -0.08, 0.0825, -70)
+q_goal_9, _ = compute_IK(0.2, -0.08, 0.18, -70)
+
+q_goal_10, _ = compute_IK(0.15, -0.09, 0.18, -70)
+q_goal_11, _ = compute_IK(0.15, -0.09, 0.0975, -70)
+q_goal_12, _ = compute_IK(0.15, -0.09, 0.18, -70)
+
+q_goal_1, _ = compute_IK(0.253, -0.135, 0.18, -70)
+q_goal_2, _ = compute_IK(0.252, -0.135, 0.125, -70)
+q_goal_3, _ = compute_IK(0.253, -0.135, 0.18, -70)
+
+q_goal_4, _ = compute_IK(0.192, -0.14, 0.18, -60)
+q_goal_5, _ = compute_IK(0.193, -0.14, 0.0875, -60)
+q_goal_6, _ = compute_IK(0.193, -0.14, 0.18, -60)
 
 # === Define Waypoints ===
 GOAL_POSITIONS_DEG = [[180, 180, 180, 90]]
+GOAL_POSITIONS_DEG.append(q_goal_init.tolist())
+GOAL_POSITIONS_DEG.append(q_goal_init_up.tolist())
 GOAL_POSITIONS_DEG.append(q_goal_1.tolist())
 GOAL_POSITIONS_DEG.append(q_goal_2.tolist())
 GOAL_POSITIONS_DEG.append(q_goal_3.tolist())
@@ -38,6 +53,14 @@ GOAL_POSITIONS_DEG.append(q_goal_7.tolist())
 GOAL_POSITIONS_DEG.append(q_goal_8.tolist())
 GOAL_POSITIONS_DEG.append(q_goal_9.tolist())
 GOAL_POSITIONS_DEG.append(q_goal_10.tolist())
+GOAL_POSITIONS_DEG.append(q_goal_11.tolist())
+GOAL_POSITIONS_DEG.append(q_goal_12.tolist())
+GOAL_POSITIONS_DEG.append(q_goal_13.tolist())
+GOAL_POSITIONS_DEG.append(q_goal_14.tolist())
+GOAL_POSITIONS_DEG.append(q_goal_15.tolist())
+GOAL_POSITIONS_DEG.append(q_goal_16.tolist())
+GOAL_POSITIONS_DEG.append(q_goal_17.tolist())
+GOAL_POSITIONS_DEG.append(q_goal_18.tolist())
 GOAL_POSITIONS_DEG.append([180, 180, 180, 90])  # Return to upright
 
 SEGMENT_DURATION = 10.0

@@ -8,7 +8,7 @@ class PDControllerNoGravity:
         self,
         K_P=None,
         K_D=None,
-        control_freq=30.0,
+        control_freq=60.0,
         pwm_limits=None,
         debug=False
     ):
@@ -69,7 +69,7 @@ class PDGCController:
         self,
         K_P=None,
         K_D=None,
-        control_freq=30.0,
+        control_freq=60.0,
         pwm_limits=None,
         debug=False
     ):

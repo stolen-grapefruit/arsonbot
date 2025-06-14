@@ -38,7 +38,7 @@ deactivate () {
 # unset irrelevant variables
 deactivate nondestructive
 
-VIRTUAL_ENV="C:\Users\jessi\Desktop\MAE263C\Project\arsonbot\src\venv"
+VIRTUAL_ENV="C:\Users\lette\Documents\GitHub\arsonbot\src\venv"
 export VIRTUAL_ENV
 
 _OLD_VIRTUAL_PATH="$PATH"

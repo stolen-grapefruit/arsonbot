@@ -13,7 +13,7 @@ TARGET_PIXEL_OFFSET = (0, 40)
 ENDEFFECTOR_PIXEL_OFFSET = (0, 0)
 MIN_BLOB_SIZE = 10
 
-COM_PORT = 'COM4'
+COM_PORT = 'COM5'
 
 # === Joint Angle Limits (rad) ===
 JOINT_LIMITS = [
